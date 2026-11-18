@@ -7,7 +7,7 @@
     {
       "name": "mobile-skill",
       "source": "./",
-      "description": "Waterfall SDLC skills for Android and Kotlin/Compose Multiplatform apps, with the SDLC baseline-gate and session-handoff hooks and an autopilot mode."
+      "description": "Waterfall SDLC skills for Android and Kotlin/Compose Multiplatform apps, with the SDLC baseline-gate and session-handoff hooks, an autopilot mode and a progress dashboard."
     }
   ]
 }
