@@ -38,3 +38,6 @@ Run the hook tests from the repo root:
 python3 -m unittest discover -s hooks/test
 ```
 Check the plugin and the marketplace with `claude plugin validate .`.
+
+## License
+MIT. See [LICENSE](LICENSE).

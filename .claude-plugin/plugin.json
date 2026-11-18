@@ -7,5 +7,13 @@
     "name": "Manh Nguyen"
   },
   "repository": "https://github.com/phongmanh/mobile-skill",
-  "keywords": ["android", "kotlin", "kotlin-multiplatform", "compose-multiplatform", "sdlc", "waterfall"]
+  "keywords": [
+    "android",
+    "kotlin",
+    "kotlin-multiplatform",
+    "compose-multiplatform",
+    "sdlc",
+    "waterfall"
+  ],
+  "license": "MIT"
 }
