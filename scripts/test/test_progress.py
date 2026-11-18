@@ -157,6 +157,31 @@ class CommandTest(unittest.TestCase):
             self.assertEqual(both.returncode, 0, both.stderr)
             self.assertEqual(page.count('<section class="ws"'), 2)
 
+    def test_takes_a_slug_from_anywhere_in_the_project_and_prints_a_summary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp, "docs/sdlc/notes")
+            workspace.mkdir(parents=True)
+            (workspace / "STATUS.md").write_text(FILLED, encoding="utf-8")
+            done = subprocess.run([sys.executable, str(SCRIPTS / "progress.py"), "notes"], cwd=workspace,
+                                  capture_output=True, text=True)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            self.assertTrue((workspace / "progress.html").is_file())
+        self.assertIn("Notes App · Phase 3 Detailed design", done.stdout)
+        self.assertIn("2/4 done · next: #3", done.stdout)
+        self.assertIn("G1 approved · G2 with conditions · G3 next", done.stdout)
+        self.assertIn("Waiting on you: Privacy copy (TBD-3)", done.stdout)
+        self.assertIn("Dashboard: ", done.stdout)
+
+    def test_names_the_workspaces_when_the_slug_is_wrong(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            Path(tmp, "docs/sdlc/notes").mkdir(parents=True)
+            Path(tmp, "docs/sdlc/notes/STATUS.md").write_text(FILLED, encoding="utf-8")
+            done = subprocess.run([sys.executable, str(SCRIPTS / "progress.py"), "nope"], cwd=tmp,
+                                  capture_output=True, text=True)
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("No workspace 'nope'", done.stderr)
+        self.assertIn(": notes.", done.stderr)
+
     def test_says_when_there_is_no_workspace(self):
         with tempfile.TemporaryDirectory() as tmp:
             done = subprocess.run([sys.executable, str(SCRIPTS / "progress.py")], cwd=tmp, capture_output=True,

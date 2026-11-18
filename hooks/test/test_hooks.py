@@ -122,6 +122,34 @@ class BaselineGuardTest(ProjectTestCase):
         self.assertEqual(self.edit("requirements.md", SDLC_GATE="OFF"), "")
 
 
+class RefreshProgressTest(ProjectTestCase):
+    def edit_status(self):
+        payload = {"tool_name": "Edit", "tool_input": {"file_path": str(self.workspace / "STATUS.md")}}
+        return run_hook("refresh-progress.py", self.project, payload)
+
+    def test_creates_no_dashboard_nobody_asked_for(self):
+        self.write_status(STATUS)
+        self.edit_status()
+        self.assertFalse((self.workspace / "progress.html").exists())
+
+    def test_refreshes_an_existing_dashboard(self):
+        self.write_status(STATUS)
+        page = self.workspace / "progress.html"
+        page.write_text("old", encoding="utf-8")
+        done = self.edit_status()
+        self.assertEqual(done.stdout, "")
+        self.assertIn("Phase 4 plan", page.read_text(encoding="utf-8"))
+
+    def test_ignores_other_files_and_never_fails(self):
+        self.write_status("not a status file")
+        page = self.workspace / "progress.html"
+        page.write_text("old", encoding="utf-8")
+        payload = {"tool_name": "Write", "tool_input": {"file_path": str(self.workspace / "requirements.md")}}
+        run_hook("refresh-progress.py", self.project, payload)
+        self.assertEqual(page.read_text(encoding="utf-8"), "old")
+        self.edit_status()  # a STATUS.md without the usual sections still renders, and the hook exits 0
+
+
 class StatusTablesTest(unittest.TestCase):
     def test_section_rows_key_cells_by_header(self):
         rows = section_rows(STATUS, "deliverables")

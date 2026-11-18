@@ -10,10 +10,11 @@ Phase names come from, in order: --phases "A,B,C"; --skill-dir <skill> (its
 phases/<n>-<name>.md files); the plugin's own skill that the STATUS.md belongs to;
 otherwise "Phase <n>".
 
-Usage, from the target project's root:
-    python3 <plugin>/scripts/progress.py [--workspace docs/sdlc/<slug>] [--open]
+Usage, from anywhere inside the target project (or /mobile-skill:progress in Claude Code):
+    python3 <plugin>/scripts/progress.py [<slug>] [--open]
 It writes progress.html next to STATUS.md (or docs/sdlc/progress.html for several
-workspaces) and prints the path. Standard library only.
+workspaces), prints a short summary and the page's path. Once a page exists, the
+plugin's refresh-progress.py hook keeps it current. Standard library only.
 """
 import argparse
 import datetime
@@ -67,7 +68,8 @@ def phase_names(text, skill_dir=None, names=None):
     if names:
         return {i + 1: name.strip() for i, name in enumerate(names) if name.strip()}
     if skill_dir is None:
-        mentioned = [d for d in sorted((PLUGIN / "skills").glob("*")) if d.name in text]
+        owners = [path.parent for path in sorted((PLUGIN / "skills").glob("*/phases"))]
+        mentioned = [d for d in owners if re.search(rf"(?<![\w-]){re.escape(d.name)}(?![\w-])", text)]
         skill_dir = mentioned[0] if mentioned else PLUGIN / "skills" / detect_skill(text)
     found = names_from_skill_dir(skill_dir) if Path(skill_dir).is_dir() else {}
     if found:
@@ -484,50 +486,109 @@ def render_page(blocks, title, generated=None):
     )
 
 
+def find_project(start):
+    """The nearest folder at or above `start` that has docs/sdlc/*/STATUS.md, or `start` itself."""
+    start = Path(start).resolve()
+    for folder in (start, *start.parents):
+        if workspaces(folder):
+            return folder
+    return start
+
+
+def select(project, workspace=None):
+    """The workspace folders to show: the one named by a slug ("notes-app"), a path ("docs/sdlc/notes-app")
+    or a STATUS.md path, or every workspace when none is named. Raises SystemExit when there's none."""
+    project = Path(project).resolve()
+    found = workspaces(project)
+    if not workspace:
+        if not found:
+            raise SystemExit(f"No docs/sdlc/*/STATUS.md in {project}. Run this from your project, or pass --project.")
+        return found
+    for candidate in (Path(workspace), project / workspace, project / "docs/sdlc" / workspace):
+        candidate = candidate.resolve()
+        if candidate.name == "STATUS.md":
+            candidate = candidate.parent
+        if (candidate / "STATUS.md").is_file():
+            return [candidate]
+    names = ", ".join(path.name for path in found) or "none"
+    raise SystemExit(f"No workspace {workspace!r}. Workspaces in {project}: {names}.")
+
+
+def label_of(project, path):
+    try:
+        return str(path.relative_to(project))
+    except ValueError:
+        return path.name
+
+
 def build(project, workspace=None, skill_dir=None, names=None, out=None):
     """Writes the dashboard and returns its path. Raises SystemExit with a message when there's nothing to show."""
     project = Path(project).resolve()
-    if workspace:
-        found = [(project / workspace).resolve()]
-        if not (found[0] / "STATUS.md").is_file():
-            raise SystemExit(f"No STATUS.md in {workspace}.")
-    else:
-        found = workspaces(project)
-        if not found:
-            raise SystemExit("No docs/sdlc/*/STATUS.md here. Pass --project or --workspace.")
-    blocks = []
-    for i, path in enumerate(found, 1):
-        text = (path / "STATUS.md").read_text(encoding="utf-8")
-        try:
-            label = str(path.relative_to(project))
-        except ValueError:
-            label = path.name
-        blocks.append(render_workspace(text, label, f"w{i}", skill_dir, names))
-    if len(found) == 1:
-        title = title_of((found[0] / "STATUS.md").read_text(encoding="utf-8"), found[0].name) + " progress"
-    else:
-        title = "SDLC progress"
+    found = select(project, workspace)
+    texts = [(path / "STATUS.md").read_text(encoding="utf-8") for path in found]
+    blocks = [render_workspace(text, label_of(project, path), f"w{i}", skill_dir, names)
+              for i, (path, text) in enumerate(zip(found, texts), 1)]
+    title = title_of(texts[0], found[0].name) + " progress" if len(found) == 1 else "SDLC progress"
     target = Path(out) if out else (found[0] if len(found) == 1 else found[0].parent) / "progress.html"
     target.write_text(render_page(blocks, title), encoding="utf-8")
     return target
 
 
+def summary(text, label, skill_dir=None, names=None):
+    """A few plain-text lines on where a workspace stands, for the terminal."""
+    phases = phase_names(text, skill_dir, names)
+    current = phase_number(text)
+    head = title_of(text, Path(label).name)
+    if current:
+        head += f" · Phase {current}" + (f" {phases[current]}" if current in phases else "")
+    lines = [head]
+    plan = plan_progress(text)
+    if plan:
+        line = f'  Plan     {plan["done"]}/{plan["total"]} done'
+        open_rows = [row for row in plan["rows"] if plan_tone(list(row.values())[-1])[0] != "ok"]
+        if open_rows:
+            values = list(open_rows[0].values())
+            line += f" · next: #{values[0]} {values[1]} ({values[-1]})"
+        lines.append(line)
+    gate_list = gates(text)
+    decided = [f'{g["id"]} {g["label"].lower()}' for g in gate_list if g["tone"] != "pending"]
+    upcoming = [f'{g["id"]} next' for g in gate_list if g["label"] == "Next"]
+    if gate_list:
+        lines.append("  Gates    " + " · ".join(decided + upcoming))
+    waiting = handoff_field(text, "Waiting on user")
+    if filled(waiting):
+        lines.append(f"  Waiting on you: {waiting}")
+    return "\n".join(lines)
+
+
 def parse_args(argv):
-    parser = argparse.ArgumentParser(description="Render an SDLC STATUS.md as a progress dashboard (HTML).")
-    parser.add_argument("--project", default=".", help="the target project's root (default: current directory)")
-    parser.add_argument("--workspace", help="docs/sdlc/<slug>, relative to the project (default: all of them)")
+    parser = argparse.ArgumentParser(
+        description="Render SDLC STATUS.md files as a progress dashboard (progress.html) and print a summary.")
+    parser.add_argument("workspace", nargs="?",
+                        help='a workspace slug ("notes-app") or path (default: every workspace)')
+    parser.add_argument("--workspace", dest="workspace_option", help=argparse.SUPPRESS)
+    parser.add_argument("--project", help="the project root (default: found from the current folder upwards)")
     parser.add_argument("--skill-dir", help="a skill folder whose phases/<n>-<name>.md files name the phases")
     parser.add_argument("--phases", help='comma-separated phase names, e.g. "Discovery,Build,Launch"')
     parser.add_argument("--out", help="where to write the page (default: progress.html next to STATUS.md)")
     parser.add_argument("--open", action="store_true", help="open the page in the default browser")
+    parser.add_argument("--quiet", action="store_true", help="print only the page's path")
     return parser.parse_args(argv)
 
 
 def main(argv=None):
     args = parse_args(argv)
+    workspace = args.workspace or args.workspace_option
+    project = Path(args.project).resolve() if args.project else find_project(Path.cwd())
     names = args.phases.split(",") if args.phases else None
-    target = build(args.project, args.workspace, args.skill_dir, names, args.out)
-    print(target)
+    target = build(project, workspace, args.skill_dir, names, args.out)
+    if not args.quiet:
+        for path in select(project, workspace):
+            print(summary((path / "STATUS.md").read_text(encoding="utf-8"), label_of(project, path),
+                          args.skill_dir, names))
+            print()
+        print("Dashboard: ", end="")
+    print(target.resolve())
     if args.open:
         webbrowser.open(target.resolve().as_uri())
     return 0
