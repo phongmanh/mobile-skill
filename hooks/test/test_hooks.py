@@ -8,6 +8,8 @@ import unittest
 from pathlib import Path
 
 HOOKS = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(HOOKS))
+from sdlc_status import column, plan_progress, section_rows, table_rows  # noqa: E402
 
 STATUS = """# STATUS: Demo
 
@@ -118,6 +120,25 @@ class BaselineGuardTest(ProjectTestCase):
     def test_gate_off_lets_baselined_documents_through(self):
         self.write_status(STATUS)
         self.assertEqual(self.edit("requirements.md", SDLC_GATE="OFF"), "")
+
+
+class StatusTablesTest(unittest.TestCase):
+    def test_section_rows_key_cells_by_header(self):
+        rows = section_rows(STATUS, "deliverables")
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(column(rows[0], "Status"), "Approved")
+        self.assertEqual(column(rows[0], "version"), "1.0")
+        self.assertEqual(column(rows[0], "Missing"), "")
+        self.assertEqual(section_rows(STATUS, "Risks"), [])
+
+    def test_table_rows_read_only_the_first_table(self):
+        body = "| A | B |\n|---|---|\n| 1 | 2 |\n\ntext\n\n| C |\n|---|\n| 3 |\n"
+        self.assertEqual(table_rows(body), [{"A": "1", "B": "2"}])
+
+    def test_plan_progress_reads_the_newest_plan(self):
+        plan = plan_progress(STATUS)
+        self.assertEqual((plan["heading"], plan["phase"], plan["done"], plan["total"]), ("Phase 4 plan", 4, 1, 2))
+        self.assertIsNone(plan_progress("# nothing"))
 
 
 if __name__ == "__main__":

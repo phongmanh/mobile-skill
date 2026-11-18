@@ -29,6 +29,15 @@ Only you can switch the baseline gate off, in your git-ignored `.claude/settings
 { "env": { "SDLC_GATE": "off" } }
 ```
 
+## Progress dashboard
+`scripts/progress.py` turns `STATUS.md` into `progress.html`, a colorful page you can open in a browser or share: the phase timeline, gate decisions, the current phase plan with a progress ring, deliverables, a risk grid, open items, change requests and the handoff, with what's waiting on you highlighted. It follows your light or dark setting and works at phone width.
+```
+python3 <plugin>/scripts/progress.py --workspace docs/sdlc/<slug> --open
+```
+Without `--workspace` it shows every workspace on one page (`docs/sdlc/progress.html`). Autopilot refreshes the page after each session. Commit it or git-ignore `docs/sdlc/**/progress.html`, as your team prefers. The page is self-contained apart from its web fonts; offline, it falls back to system fonts.
+
+**In your own skill.** The dashboard reads the shape of `STATUS.md`, not anything mobile-specific, so other skills can use it too. It needs a `| Field | Value |` header table with a `Current phase` row starting with the phase number. These `##` sections are optional, and any that are missing are left out: `Deliverables`, `Gate log` (gates named `G<n> …`, one per phase), `Risks` (Likelihood and Impact as H/M/L), `Open items`, `Change requests`, `Phase <n> plan` (# · Work · … · Status) and `Handoff` (`- **Next action:**`, `- **Waiting on user:**`, …). Phase names come from `--phases "Discovery,Build,Launch"` or from `--skill-dir <your-skill>`, which reads its `phases/<n>-<name>.md` files.
+
 ## Autopilot
 Runs the workflow unattended: `scripts/autopilot.py` starts a fresh headless session (`claude -p`) for each row of the current `## Phase N plan`, and the `session-context.py` hook hands each one the last handoff. Gates still stop: autopilot never records a sign-off.
 
@@ -48,6 +57,7 @@ python3 <plugin>/scripts/autopilot.py --workspace docs/sdlc/<slug> --budget-usd 
 
 - **Permissions.** Sessions run with `--permission-mode acceptEdits` and allow file tools, `./gradlew`, `xcodebuild` and local git (`status`, `diff`, `log`, `branch`, `switch`, `checkout -b`, `add`, `commit`). They deny `git push`, merges, rebases, hard resets, `gh` and `AskUserQuestion`. The baseline gate's confirm becomes a denial. Your project's `.claude/settings.json` allow list still applies.
 - **Phase 4.** One branch and commit per PR row, stacked on the previous one after the checks pass. You push, open and review the PRs.
+- **Dashboard.** `progress.html` in the workspace is refreshed after each session; `--no-dashboard` turns that off.
 - **Log.** One JSON line per session (time, session ID, plan item, cost, result) in `.claude/autopilot/<slug>.jsonl`; consider git-ignoring `.claude/autopilot/`.
 
 ## Optional: the SDLC rule
