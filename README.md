@@ -29,13 +29,35 @@ Only you can switch the baseline gate off, in your git-ignored `.claude/settings
 { "env": { "SDLC_GATE": "off" } }
 ```
 
+## Autopilot
+Runs the workflow unattended: `scripts/autopilot.py` starts a fresh headless session (`claude -p`) for each row of the current `## Phase N plan`, and the `session-context.py` hook hands each one the last handoff. Gates still stop: autopilot never records a sign-off.
+
+Do scope and the first phase plan interactively, then ask Claude to "run autopilot", or run it yourself from the project root. The script is in the installed plugin (`~/.claude/plugins/cache/mobile-skill/mobile-skill/<version>/scripts/`) or your clone of this repo:
+```
+python3 <plugin>/scripts/autopilot.py --workspace docs/sdlc/<slug> --dry-run
+python3 <plugin>/scripts/autopilot.py --workspace docs/sdlc/<slug> --budget-usd 20
+```
+
+| It stops when | Then you |
+|---|---|
+| The Handoff's **Waiting on user** isn't "nothing" (e.g. `G1 sign-off`, a decision, a CR approval) | Decide or sign off in an interactive session, set it back to "nothing", re-run |
+| The next plan row is `Blocked: <reason>` | Unblock it, re-run |
+| Phase 4 with code review mode *Approve before writing* | Switch to *Review after writing*, or continue interactively |
+| A session fails, changes nothing in STATUS.md, or ends with `AUTOPILOT-RESULT: stop` | Read the reason and the log |
+| `--max-sessions` (default 20) or `--budget-usd` is reached | Re-run when ready |
+
+- **Permissions.** Sessions run with `--permission-mode acceptEdits` and allow file tools, `./gradlew`, `xcodebuild` and local git (`status`, `diff`, `log`, `branch`, `switch`, `checkout -b`, `add`, `commit`). They deny `git push`, merges, rebases, hard resets, `gh` and `AskUserQuestion`. The baseline gate's confirm becomes a denial. Your project's `.claude/settings.json` allow list still applies.
+- **Phase 4.** One branch and commit per PR row, stacked on the previous one after the checks pass. You push, open and review the PRs.
+- **Log.** One JSON line per session (time, session ID, plan item, cost, result) in `.claude/autopilot/<slug>.jsonl`; consider git-ignoring `.claude/autopilot/`.
+
 ## Optional: the SDLC rule
 Plugins can't ship rule files. `rules/sdlc.md` restates the document rules (IDs, baselines, gate decisions, handoff format) and loads only while Claude edits `docs/sdlc/**`. To use it, copy it into your project as `.claude/rules/sdlc.md`.
 
 ## Development
-Run the hook tests from the repo root:
+Run the hook and autopilot tests from the repo root:
 ```
 python3 -m unittest discover -s hooks/test
+python3 -m unittest discover -s scripts/test
 ```
 Check the plugin and the marketplace with `claude plugin validate .`.
 

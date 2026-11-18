@@ -11,59 +11,13 @@ Registered by the mobile-skill plugin in hooks/hooks.json.
 """
 import json
 import os
-import re
 import sys
 from pathlib import Path
 
+from sdlc_status import field, handoff, next_plan_item
+
 HANDOFF_MAX_LINES = 30
 HANDOFF_MAX_CHARS = 3000
-COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
-SECTION = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
-
-
-def cells(row):
-    return [cell.strip() for cell in row.strip().strip("|").split("|")]
-
-
-def sections(text):
-    """Maps each "## " heading to the text under it, up to the next "## " heading."""
-    matches = list(SECTION.finditer(text))
-    return {
-        m.group(1): text[m.end():matches[i + 1].start() if i + 1 < len(matches) else len(text)]
-        for i, m in enumerate(matches)
-    }
-
-
-def field(text, name):
-    """The value of a "| Field | Value |" row in the header table, or ''."""
-    for line in text.splitlines():
-        if line.lstrip().startswith("|"):
-            row = cells(line)
-            if len(row) >= 2 and row[0].lower() == name.lower():
-                return row[1]
-    return ""
-
-
-def next_plan_item(text):
-    """The first row of the newest "## Phase N plan" whose status isn't Done, as "#: PR", or ''."""
-    plans = [(heading, body) for heading, body in sections(text).items() if re.fullmatch(r"Phase \d+ plan", heading)]
-    if not plans:
-        return ""
-    heading, body = max(plans, key=lambda plan: int(re.search(r"\d+", plan[0]).group()))
-    rows = [cells(line) for line in body.splitlines() if line.lstrip().startswith("|")]
-    for row in rows[2:]:  # skip the header and the separator
-        if len(row) >= 2 and not row[-1].lower().startswith("done"):
-            return f"{heading} #{row[0]}: {row[1]} ({row[-1]})"
-    return ""
-
-
-def handoff(text):
-    """The "## Handoff" section without comments or blank lines, capped, or ''."""
-    body = sections(text).get("Handoff", "")
-    lines = [line for line in COMMENT.sub("", body).splitlines() if line.strip()]
-    capped = "\n".join(lines[:HANDOFF_MAX_LINES])
-    truncated = len(lines) > HANDOFF_MAX_LINES or len(capped) > HANDOFF_MAX_CHARS
-    return capped[:HANDOFF_MAX_CHARS] + ("\n… (truncated: keep the Handoff section short)" if truncated else "")
 
 
 def describe(project_dir, status_file):
@@ -76,7 +30,7 @@ def describe(project_dir, status_file):
     item = next_plan_item(text)
     if item:
         lines.append(f"- Next plan item: {item}")
-    note = handoff(text)
+    note = handoff(text, HANDOFF_MAX_LINES, HANDOFF_MAX_CHARS)
     if note:
         lines += [
             "",
