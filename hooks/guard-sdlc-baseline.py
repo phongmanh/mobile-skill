@@ -2,7 +2,7 @@
 """Claude Code PreToolUse hook (Edit|Write|MultiEdit).
 
 Keeps the phase gates of the SDLC skills (mobile-android-sdlc,
-mobile-multiplatform-sdlc, ktor-sdlc) real. Before Claude edits a deliverable
+mobile-multiplatform-sdlc) real. Before Claude edits a deliverable
 under docs/sdlc/<slug>/ that STATUS.md marks as Approved (baselined), the user
 is asked to confirm. A baselined document should change only through an
 approved change request (cr/CR-NNN-*.md). STATUS.md, rtm.md and cr/ are
@@ -12,7 +12,7 @@ The user (never Claude) can switch the gate off by setting SDLC_GATE=off,
 e.g. in the git-ignored .claude/settings.local.json:
     { "env": { "SDLC_GATE": "off" } }
 
-Install at: .claude/hooks/guard-sdlc-baseline.py   (chmod +x)
+Registered by the mobile-skill plugin in hooks/hooks.json.
 """
 import fnmatch
 import json

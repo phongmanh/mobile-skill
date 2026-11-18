@@ -4,20 +4,17 @@ paths:
 ---
 # SDLC Documents
 
-Applies to the deliverables of the mobile-android-sdlc (`/mobile-android-sdlc`), mobile-multiplatform-sdlc (`/mobile-multiplatform-sdlc`) and ktor-sdlc (`/ktor-sdlc`) workflows under `docs/sdlc/<initiative-slug>/`.
+Applies to the deliverables of the mobile-android-sdlc (`/mobile-skill:mobile-android-sdlc`) and mobile-multiplatform-sdlc (`/mobile-skill:mobile-multiplatform-sdlc`) workflows under `docs/sdlc/<initiative-slug>/`.
 
 - **Start from `STATUS.md`.** Check the current phase, and confirm the previous gate is approved before writing a later phase's deliverable.
 - **Follow the template** of the workflow that owns the workspace, keeping its section order and tables. `STATUS.md` names the skill:
-  - ktor-sdlc (a Ktor backend): `.claude/skills/ktor-sdlc/templates/`;
-  - mobile-multiplatform-sdlc (an Android + iOS app): `.claude/skills/mobile-multiplatform-sdlc/templates/`;
-  - otherwise: `.claude/skills/mobile-android-sdlc/templates/`.
+  - mobile-multiplatform-sdlc (an Android + iOS app): that skill's `templates/`;
+  - otherwise: the mobile-android-sdlc skill's `templates/`.
 - **Platforms.** In a mobile-multiplatform-sdlc workspace, requirements, designs and tests apply to Android and iOS unless tagged `[Android]` or `[iOS]`, and every gate is checked on both.
-- **API contract.** In a ktor-sdlc workspace, the OpenAPI contract (`docs/api/openapi.yaml`) is baselined at G3 with the feature designs. Changing it needs a CR, and a breaking change needs a new API version and a deprecation plan.
 - **IDs everywhere:**
   - `FR-nnn`;
   - `NFR-<ATTR>-nn`, with the attributes the owning skill lists;
-  - test IDs `UT-`/`IT-`/`UI-`/`ST-`/`AT-`, plus `CT-` (contract) in ktor-sdlc workspaces;
-  - in ktor-sdlc workspaces, design elements by name: endpoints as `METHOD /path`, tables, events.
+  - test IDs `UT-`/`IT-`/`UI-`/`ST-`/`AT-`.
 
   Every new requirement, design element and test gets an `rtm.md` row in the same change.
 - **Never invent** numbers, approvals, approver names or sign-off dates. Mark unknowns `TBD-<n>` and assumptions `ASSUMPTION:`, and list both in `STATUS.md`.

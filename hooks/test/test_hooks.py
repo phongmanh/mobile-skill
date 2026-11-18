@@ -1,4 +1,4 @@
-"""Tests for the SDLC hooks. Run from the repo root: python3 -m unittest discover -s .claude/hooks/test"""
+"""Tests for the SDLC hooks. Run from the repo root: python3 -m unittest discover -s hooks/test"""
 import json
 import os
 import subprocess
