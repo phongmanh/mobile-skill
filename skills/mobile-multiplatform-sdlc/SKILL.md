@@ -1,6 +1,6 @@
 ---
 name: mobile-multiplatform-sdlc
-description: Waterfall lifecycle for an Android + iOS app or feature built with Kotlin Multiplatform and Compose Multiplatform (shared logic and UI) - requirements, architecture, detailed design, implementation, testing, Google Play and App Store release, maintenance - with phase gates, sign-offs, traceability and change control. Bundles KMP best practices (source sets, expect/actual vs interfaces, Clean Architecture + MVVM in commonMain, Compose Multiplatform + Material 3, Koin, Ktor, Room KMP, iOS/Swift interop, OWASP MASVS on both platforms, testing, performance, accessibility), canonical code patterns, a PR review checklist and deliverable templates. Use when planning, designing, building, testing or releasing a KMP/CMP app or feature for Android and iOS, when bringing an Android app to iOS, when writing those documents for a KMP project, or when the user mentions waterfall, SDLC, V-model or phase gates for a cross-platform Kotlin app.
+description: Waterfall lifecycle for an Android + iOS app or feature built with Kotlin Multiplatform and Compose Multiplatform (shared logic and UI) - requirements, architecture, detailed design, implementation, testing, Google Play and App Store release, maintenance - with phase gates, sign-offs, traceability and change control. Bundles KMP best practices (source sets, expect/actual vs interfaces, Clean Architecture + MVVM in commonMain, Compose Multiplatform + Material 3, Koin, Ktor, Room KMP, iOS/Swift interop, OWASP MASVS on both platforms, testing, performance, accessibility), canonical code patterns, a PR review checklist and deliverable templates. Use when planning, designing, building, testing or releasing a KMP/CMP app or feature for Android and iOS, when bringing an Android app to iOS, when writing those documents for a KMP project, or when the user mentions waterfall, SDLC, V-model or phase gates for a cross-platform Kotlin app, or when the user wants the workflow to run unattended (autopilot), one fresh session per task.
 
 ---
 
@@ -78,7 +78,7 @@ A gated, document-driven lifecycle for an app that ships to **Android and iOS fr
 7. **Gate review.** Run the phase's exit checklist for both platforms. Present the deliverables and their status, the checklist results, open TBDs, top risks, and a recommendation: approve, approve with conditions, or rework.
 8. **STOP for sign-off.** Ask for the decision and the approver's name and role. Record both in the STATUS.md gate log and suggest a git tag (`sdlc/<slug>/G<n>`). A waiver records the accepted risk and who accepted it.
 9. **After a baseline,** every change to an approved deliverable goes through a [change request](templates/change-request.md): RTM impact analysis → decision → update the affected deliverables → re-check the affected gates.
-10. **End of session.** Finish one unit of work per session. Before stopping, update the deliverable, its row in STATUS.md's current `## Phase <n> plan`, and rewrite the `## Handoff` section from the template.
+10. **End of session.** Finish one unit of work per session. Before stopping, update the deliverable, its row in STATUS.md's current `## Phase <n> plan`, and rewrite the `## Handoff` section from the template. In [autopilot](#autopilot) the next session starts on its own, so don't tell the user to `/clear`.
 
 **Partial use.** If the user wants a single deliverable (e.g. "write the feature design for login"), produce just that one, following its phase's guidance. Mention any missing upstream inputs, but don't force the whole lifecycle. The same goes for code: "add a notes screen to the shared module" uses the [code patterns](reference/code-patterns.md) and the [review checklist](reference/review-checklist.md) without the documents.
 
@@ -95,6 +95,25 @@ docs/sdlc/<initiative-slug>/
 ├── release-checklist.md    # Phase 6
 └── cr/CR-NNN-<title>.md    # after any baseline
 ```
+
+## Autopilot
+Unattended mode: a driver script starts a fresh headless session (`claude -p`) for each row of the current phase plan, and the SessionStart hook hands each one the handoff. Nobody answers questions in these sessions. **Gates still stop:** autopilot never records a gate decision.
+
+**Starting it** (interactive session, when the user asks for autopilot):
+1. Check that Scope (step 3) is done and STATUS.md has a `## Phase <n> plan` with real rows. If not, do those first, with the user.
+2. In Phase 4, the owner reviews each PR after it's written (pushing and merging stay with them).
+3. Run, from the project root, with Bash `run_in_background`: `python3 <this skill's base directory>/../../scripts/autopilot.py --workspace docs/sdlc/<slug>`. Use `--dry-run` first to show the user the command. Options: `--max-sessions` (default 20), `--budget-usd`, `--session-timeout` (minutes).
+4. Tell the user it stops by itself when it needs them, that `TaskStop` (or Ctrl-C) stops it early, and that each session is logged in `.claude/autopilot/<slug>.jsonl`.
+
+**The driver stops when:** the Handoff's **Waiting on user** isn't "nothing"; the next plan row is `Blocked`; a session fails, changes nothing in STATUS.md, or ends with `AUTOPILOT-RESULT: stop`; or the session or budget cap is reached. It denies `git push`, `gh`, merges, rebases, hard resets and `AskUserQuestion`; the baseline gate's confirm becomes a denial.
+
+**Inside an autopilot session** (the prompt says AUTOPILOT):
+- Do exactly one plan row, then the End of session step (10). If the plan has no open row: when the gate log approves the current phase's gate, set the next phase in STATUS.md and write its `## Phase <n> plan`; otherwise run the gate review (step 7).
+- **Never ask.** Anything only the owner can decide (step 5) becomes an Open item; set the row to `Blocked: <reason>` and **Waiting on user** to the decision, then stop. **(proposed)** numbers stay proposed.
+- **Gate row:** run the exit checklist and write the gate review (checklist results, open TBDs, top risks, recommendation) as a `## G<n> review` section just above the Handoff. Set **Waiting on user** to `G<n> sign-off`. Never write the gate log or a tag.
+- **Baselines:** never edit an Approved deliverable. A needed change becomes a draft CR, and the row is Blocked on its approval.
+- **Phase 4:** one PR row per session. Create its branch (`feature/<ticket-id>-<desc>`, per the project's git rules) from the current HEAD, so it stacks on the previous unmerged PR. Implement it, run `./gradlew ktlintCheck detekt :shared:allTests` and, where Xcode is available, `./gradlew :shared:iosSimulatorArm64Test` (and the project's own pre-merge checks), fix what fails, then update the RTM and STATUS.md and commit them with the code, citing the ticket and FR IDs. If the checks can't be made green, commit nothing and set the row Blocked. Never push or open a PR: the user does, and reviews each one.
+- **Last line of the reply:** `AUTOPILOT-RESULT: continue`, or `AUTOPILOT-RESULT: stop <reason>` when the next session can't make progress without the user.
 
 ## File index
 - **Phases:** [1 Requirements](phases/1-requirements.md) · [2 Architecture](phases/2-architecture.md) · [3 Detailed design](phases/3-detailed-design.md) · [4 Implementation](phases/4-implementation.md) · [5 Testing](phases/5-testing.md) · [6 Release](phases/6-release.md) · [7 Maintenance](phases/7-maintenance.md)
