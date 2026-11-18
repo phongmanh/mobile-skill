@@ -140,6 +140,37 @@ class RenderTest(unittest.TestCase):
                 self.assertEqual(page.count('class="step now"'), 1)
 
 
+class RealWorldCellsTest(unittest.TestCase):
+    """Cells as long-running projects write them: notes in the status, gate IDs, multi-line handoffs."""
+
+    def test_deliverable_status_splits_the_stage_from_its_note(self):
+        self.assertEqual(progress.deliverable_status("Approved (G1, 2026-11-18)"), ("ok", "Approved", "G1, 2026-11-18"))
+        self.assertEqual(progress.deliverable_status("Draft"), ("warn", "Draft", ""))
+        self.assertEqual(progress.deliverable_status("ADR-0001 layout, ADR-0002 i18n: Proposed")[:2],
+                         ("info", "Proposed"))
+        mixed = "§1, §5 Approved (G1); master plan §2–§4 Draft"
+        self.assertEqual(progress.deliverable_status(mixed), ("warn", "Draft", mixed))
+        self.assertEqual(progress.deliverable_status("see ADR index"), (None, "", "see ADR index"))
+
+    def test_a_gate_id_counts_as_blocking(self):
+        self.assertTrue(progress.blocks_gate("G3"))
+        self.assertTrue(progress.blocks_gate("Yes (G2)"))
+        self.assertFalse(progress.blocks_gate("No"))
+        self.assertFalse(progress.blocks_gate("—"))
+
+    def test_handoff_fields_keep_their_continuation_lines(self):
+        text = FILLED.replace("- **Last session:** 2026-11-18 — finished the notes list",
+                              "- **Last session:** 2026-11-18 — row 2 done.\n  - list screen\n  - empty state")
+        self.assertEqual(progress.handoff_value(text, "Last session"),
+                         ["2026-11-18 — row 2 done.", "list screen", "empty state"])
+        page = render(text)
+        self.assertIn('<ul class="more"><li>list screen</li><li>empty state</li></ul>', page)
+
+    def test_code_in_a_risk_stays_inline(self):
+        page = render(FILLED.replace("If the API slips", "If `ALLOWED_ORIGINS` slips"))
+        self.assertIn('<span>If <span class="mono">ALLOWED_ORIGINS</span> slips, then G3 moves</span>', page)
+
+
 class CommandTest(unittest.TestCase):
     def test_writes_progress_html_next_to_status(self):
         with tempfile.TemporaryDirectory() as tmp:
