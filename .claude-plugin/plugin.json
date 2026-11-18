@@ -1,0 +1,11 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "mobile-skill",
+  "version": "0.1.0",
+  "description": "Waterfall SDLC skills for native Android (Kotlin) and Kotlin/Compose Multiplatform (Android + iOS) apps, with phase gates, templates and code patterns, plus hooks for the baseline gate and session handoff.",
+  "author": {
+    "name": "Manh Nguyen"
+  },
+  "repository": "https://github.com/phongmanh/mobile-skill",
+  "keywords": ["android", "kotlin", "kotlin-multiplatform", "compose-multiplatform", "sdlc", "waterfall"]
+}

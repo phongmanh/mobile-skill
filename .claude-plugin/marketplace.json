@@ -1,0 +1,13 @@
+{
+  "name": "mobile-skill",
+  "owner": {
+    "name": "Manh Nguyen"
+  },
+  "plugins": [
+    {
+      "name": "mobile-skill",
+      "source": "./",
+      "description": "Waterfall SDLC skills for Android and Kotlin/Compose Multiplatform apps, with the SDLC baseline-gate and session-handoff hooks."
+    }
+  ]
+}
