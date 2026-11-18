@@ -101,15 +101,30 @@ def plan_tone(status):
     return "idle", status or "Not started"
 
 
-def deliverable_tone(status):
-    s = status.lower()
-    if s.startswith("approved"):
-        return "ok"
-    if s.startswith("in review"):
-        return "info"
-    if s.startswith("draft"):
-        return "warn"
-    return "idle"
+STAGES = (  # least to most mature: (word, chip tone, label)
+    ("not started", "idle", "Not started"), ("draft", "warn", "Draft"), ("proposed", "info", "Proposed"),
+    ("in review", "info", "In review"), ("approved", "ok", "Approved"),
+)
+
+
+def deliverable_status(status):
+    """(tone, label, note) for a Deliverables status cell, or (None, '', note) when it names no stage.
+
+    "Approved (G1, 2026-11-18)" -> ("ok", "Approved", "G1, 2026-11-18"). A cell that mixes stages without
+    leading with one ("§1 Approved; §2 Draft") gets its least mature stage, with the whole cell as the note.
+    """
+    text = status.strip()
+    lower = text.lower()
+    for word, tone, label in STAGES:
+        if lower.startswith(word):
+            note = text[len(word):].strip(" :;,.-–—")
+            if note.startswith("(") and note.endswith(")") and note.count("(") == 1:
+                note = note[1:-1]
+            return tone, label, note
+    for word, tone, label in STAGES:
+        if re.search(rf"\b{word}\b", lower):
+            return tone, label, text
+    return None, "", text
 
 
 def gate_tone(decision):
@@ -288,13 +303,15 @@ def render_deliverables(text):
         phase = column(row, "Phase")
         match = re.match(r"\s*(\d+)", phase)
         color = phase_color(int(match.group(1))) if match else "var(--idle)"
-        status = column(row, "Status")
-        status_html = chip(deliverable_tone(status), status) if filled(status) else esc(status)
+        tone, label, note = deliverable_status(column(row, "Status"))
+        status_html = chip(tone, label) if tone else esc("" if note else column(row, "Status"), empty="—")
         file_html = f'<span class="file mono">{esc(column(row, "File"), empty="")}</span>' \
             if filled(column(row, "File")) else ""
+        note_html = f'<span class="note" title="{html.escape(note.replace("`", ""))}">{esc(note)}</span>' \
+            if filled(note) else ""
         body.append(
             f'<tr><td><span class="ph" style="--c:{color}">{esc(phase)}</span></td>'
-            f'<td>{esc(column(row, "Deliverable"))}{file_html}</td>'
+            f'<td>{esc(column(row, "Deliverable"))}{file_html}{note_html}</td>'
             f'<td class="mono tnum">{esc(column(row, "Version"))}</td><td>{status_html}</td></tr>'
         )
     return (
@@ -369,7 +386,7 @@ def render_risks(text, risk_list):
         top_html = "".join(
             f'<li style="--r:var(--{tone[heat_class(r["score"])]})"><span class="rid">'
             + " · ".join(esc(v) for v in (r["id"], level_pair(r), r["owner"]) if filled(v))
-            + f'</span>{esc(r["text"])}</li>'
+            + f'</span><span>{esc(r["text"])}</span></li>'
             for r in top
         ) or '<li style="--r:var(--ok)">No open risks.</li>'
         parts.append(
@@ -379,7 +396,7 @@ def render_risks(text, risk_list):
     mini = []
     if items:
         open_items = [r for r in items if is_open(column(r, "Status"))]
-        blocking = sum(1 for r in open_items if column(r, "Blocks").lower().startswith("y"))
+        blocking = sum(1 for r in open_items if blocks_gate(column(r, "Blocks")))
         mini.append(f'<div><span class="muted">Open items</span><b class="tnum">{len(open_items)}</b>'
                     f'<span>{blocking} block a gate</span></div>')
     if crs:
@@ -396,6 +413,35 @@ def render_risks(text, risk_list):
     )
 
 
+def blocks_gate(cell):
+    """True for "Yes", "Yes (G3)" or a gate ID such as "G3"; False for "No", "—" or empty."""
+    return cell.strip().lower().startswith("y") or bool(re.match(r"\s*G\d", cell))
+
+
+def handoff_value(text, name):
+    """A "- **<name>:** value" Handoff line plus its indented continuation lines, as a list of parts."""
+    lines = handoff_lines(text)
+    pattern = re.compile(r"^[-*]\s*\*\*" + re.escape(name) + r":?\*\*:?\s*(.*)$", re.IGNORECASE)
+    for i, line in enumerate(lines):
+        match = pattern.match(line)
+        if match:
+            parts = [match.group(1).strip()]
+            for more in lines[i + 1:]:
+                if not more[:1].isspace():
+                    break
+                parts.append(more.strip().lstrip("-*").strip())
+            return [part for part in parts if part]
+    return []
+
+
+def rich(parts):
+    """The first part as text, the rest as a short list under it."""
+    if not parts:
+        return ""
+    more = "".join(f"<li>{esc(part)}</li>" for part in parts[1:])
+    return esc(parts[0]) + (f'<ul class="more">{more}</ul>' if more else "")
+
+
 def level_pair(risk):
     letters = {1: "L", 2: "M", 3: "H"}
     if risk["likelihood"] and risk["impact"]:
@@ -407,26 +453,27 @@ def render_handoff(text, current):
     lines = handoff_lines(text)
     if not lines:
         return ""
-    values = {name: handoff_field(text, name) for name in
-              ("Last session", "State", "Next action", "Load", "Inputs", "Waiting on user")}
+    values = {name: handoff_value(text, name) for name in
+              ("Last session", "State", "Next action", "Load", "Inputs")}
+    values = {name: parts for name, parts in values.items() if parts and filled(parts[0])}
     callouts = []
-    if filled(values["Next action"]):
+    if "Next action" in values:
         callouts.append(f'<div class="callout" style="--c:{phase_color(current or 1)}"><span class="k">Next action'
-                        f'</span><p>{esc(values["Next action"])}</p></div>')
-    waiting = values["Waiting on user"]
+                        f'</span><p>{rich(values["Next action"])}</p></div>')
+    waiting = handoff_field(text, "Waiting on user")
     if filled(waiting) and not waiting.lower().startswith(NOTHING):
         callouts.append(f'<div class="callout wait"><span class="k">Waiting on you</span>'
                         f'<p>{esc(waiting)}</p></div>')
     elif filled(waiting):
         callouts.append('<div class="callout clear"><span class="k">Waiting on you</span>'
                         '<p>Nothing. The next session can start.</p></div>')
-    facts = [(name, values[name]) for name in ("Last session", "State", "Load", "Inputs") if filled(values[name])]
+    facts = [(name, values[name]) for name in ("Last session", "State", "Load", "Inputs") if name in values]
     if not callouts and not facts:  # a free-form handoff: show what's filled in, as written
         written = [line.lstrip("-* ").replace("**", "").strip() for line in lines]
-        facts = [("", line) for line in written if filled(line) and not PLACEHOLDER.search(line)]
+        facts = [("", [line]) for line in written if filled(line) and not PLACEHOLDER.search(line)]
     if not callouts and not facts:
         return ""
-    facts_html = "".join(f"<dt>{esc(name, empty='')}</dt><dd>{esc(value)}</dd>" for name, value in facts)
+    facts_html = "".join(f"<dt>{esc(name, empty='')}</dt><dd>{rich(parts)}</dd>" for name, parts in facts)
     return (
         f'<section class="card"><div class="card-head"><h2>Handoff</h2></div><div class="handoff">'
         f'{"".join(callouts)}' + (f'<dl class="facts">{facts_html}</dl>' if facts else "") + "</div></section>"
@@ -744,6 +791,8 @@ td:last-child, th:last-child { padding-right: 0; text-align: right; }
 .ph { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 5px; border-radius: 7px; color: #fff;
   font: 600 12px var(--font-display); background: var(--c); white-space: nowrap; }
 .file { display: block; font-size: 12px; color: var(--muted); }
+.note { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  max-width: 52ch; margin-top: 2px; font-size: 12px; color: var(--muted); }
 
 .risk-wrap { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: start; }
 .heat { display: grid; grid-template-columns: 22px repeat(3, 34px); grid-auto-rows: 34px; gap: 4px; font-size: 11px; color: var(--muted); }
@@ -760,7 +809,8 @@ td:last-child, th:last-child { padding-right: 0; text-align: right; }
 .mini > div { background: var(--surface-2); border-radius: 12px; padding: 12px; display: grid; gap: 4px; font-size: 13px; }
 .mini b { font: 600 20px var(--font-display); }
 
-.handoff { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.handoff { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; align-items: start; }
+.more { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 2px; font-size: .92em; font-weight: 400; color: var(--muted); }
 .callout { border-radius: 14px; padding: 16px 18px; display: grid; gap: 6px; align-content: start; overflow-wrap: anywhere;
   background: color-mix(in srgb, var(--c) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--c) 35%, transparent); }
 .callout.wait { --c: var(--warn); background: var(--warn-bg); }
