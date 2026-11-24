@@ -23,6 +23,7 @@ The deliverables live in your project under `docs/sdlc/<initiative-slug>/`, with
 | Hook | Event | What it does |
 |---|---|---|
 | `session-context.py` | `SessionStart` | For each `docs/sdlc/*/STATUS.md`, shows the current phase, the next open row of the newest `## Phase N plan` and the `## Handoff` section. A session can start after `/clear` and pick up where the last one stopped. |
+| `guard-large-read.py` | `PreToolUse` (`Read`) | Refuses a read of more than 24 KB under `docs/sdlc/` (a whole large file, or a range that covers most of one) and returns its outline with line numbers, so Claude reads only the sections it needs. Everything read stays in the context and is re-sent on every later call. |
 | `guard-sdlc-baseline.py` | `PreToolUse` (`Edit`, `Write`, `MultiEdit`) | Asks you to confirm before Claude edits a deliverable that `STATUS.md` marks Approved. A baselined document changes only through an approved change request. |
 | `refresh-progress.py` | `PostToolUse` (`Edit`, `Write`, `MultiEdit`) | After Claude edits a `STATUS.md`, refreshes its progress dashboard, if you've created one. |
 
@@ -53,6 +54,7 @@ Do scope and the first phase plan interactively, then ask Claude to "run autopil
 python3 <plugin>/scripts/autopilot.py --workspace docs/sdlc/<slug> --dry-run
 python3 <plugin>/scripts/autopilot.py --workspace docs/sdlc/<slug> --budget-usd 20
 ```
+`--model` and `--effort` (low to max) set each session's model and effort; by default they are Claude Code's.
 
 | It stops when | Then you |
 |---|---|
@@ -65,7 +67,7 @@ python3 <plugin>/scripts/autopilot.py --workspace docs/sdlc/<slug> --budget-usd 
 - **Permissions.** Sessions run with `--permission-mode acceptEdits` and allow file tools, `./gradlew`, `xcodebuild` and local git (`status`, `diff`, `log`, `branch`, `switch`, `checkout -b`, `add`, `commit`). They deny `git push`, merges, rebases, hard resets, `gh` and `AskUserQuestion`. The baseline gate's confirm becomes a denial. Your project's `.claude/settings.json` allow list still applies.
 - **Phase 4.** One branch and commit per PR row, stacked on the previous one after the checks pass. You push, open and review the PRs.
 - **Dashboard.** `progress.html` in the workspace is refreshed after each session; `--no-dashboard` turns that off.
-- **Log.** One JSON line per session (time, session ID, plan item, cost, result) in `.claude/autopilot/<slug>.jsonl`; consider git-ignoring `.claude/autopilot/`.
+- **Log.** One JSON line per session (time, session ID, plan item, cost, token usage and turns, result) in `.claude/autopilot/<slug>.jsonl`; consider git-ignoring `.claude/autopilot/`.
 
 ## Optional: the SDLC rule
 Plugins can't ship rule files. `rules/sdlc.md` restates the document rules (IDs, baselines, gate decisions, handoff format) and loads only while Claude edits `docs/sdlc/**`. To use it, copy it into your project as `.claude/rules/sdlc.md`.
