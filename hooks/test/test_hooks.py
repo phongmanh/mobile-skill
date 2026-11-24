@@ -113,9 +113,41 @@ class BaselineGuardTest(ProjectTestCase):
         self.assertEqual(decision["permissionDecision"], "ask")
         self.assertIn("SDLC_GATE=off", decision["permissionDecisionReason"])
 
-    def test_lets_living_files_through(self):
+    def decision(self, relative_path, **env):
+        out = self.edit(relative_path, **env)
+        return json.loads(out)["hookSpecificOutput"]["permissionDecision"] if out else None
+
+    def test_allows_living_files_without_a_prompt(self):
         self.write_status(STATUS)
-        self.assertEqual(self.edit("STATUS.md"), "")
+        for name in ("STATUS.md", "STATUS-archive.md", "rtm.md", "cr/CR-001-login.md"):
+            self.assertEqual(self.decision(name), "allow", name)
+        self.assertEqual(self.decision("STATUS.md", SDLC_GATE="off"), "allow")
+
+    def test_leaves_other_unapproved_files_to_the_usual_prompt(self):
+        self.write_status(STATUS)
+        self.assertIsNone(self.decision("design/login.md"))
+        self.assertIsNone(self.decision("cr/notes.txt"))
+        self.assertIsNone(self.decision("cr/old/CR-001-login.md"))
+
+    def test_auto_allow_can_be_switched_off(self):
+        self.write_status(STATUS)
+        self.assertIsNone(self.decision("STATUS.md", SDLC_AUTO_ALLOW="off"))
+
+    def test_never_allows_a_path_that_leaves_the_workspace(self):
+        self.write_status(STATUS)
+        self.assertIsNone(self.decision("cr/../../../../app/build.gradle.md"))
+        elsewhere = self.project / "app"
+        elsewhere.mkdir()
+        (elsewhere / "Main.kt").write_text("", encoding="utf-8")
+        (self.workspace / "rtm.md").symlink_to(elsewhere / "Main.kt")
+        self.assertIsNone(self.decision("rtm.md"))
+
+    def test_never_allows_a_workspace_outside_the_project(self):
+        self.write_status(STATUS)
+        nested = self.project / "vendor/docs/sdlc/other"
+        nested.mkdir(parents=True)
+        payload = {"tool_name": "Write", "tool_input": {"file_path": str(nested / "STATUS.md")}}
+        self.assertEqual(run_hook("guard-sdlc-baseline.py", self.project, payload).stdout, "")
 
     def test_gate_off_lets_baselined_documents_through(self):
         self.write_status(STATUS)
