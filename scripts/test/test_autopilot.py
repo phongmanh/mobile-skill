@@ -59,7 +59,8 @@ if mode == "ask-stop":
     text = text.replace("| Not started |", "| Done |", 1)
     result = "AUTOPILOT-RESULT: stop needs a product decision"
 status.write_text(text)
-print(json.dumps({"result": result, "total_cost_usd": 0.5, "session_id": "s-1", "is_error": False}))
+print(json.dumps({"result": result, "total_cost_usd": 0.5, "session_id": "s-1", "is_error": False,
+                  "num_turns": 7, "usage": {"cache_read_input_tokens": 900, "output_tokens": 40}}))
 """
 
 
@@ -103,6 +104,7 @@ class AutopilotTest(unittest.TestCase):
         self.assertIn("no open row", self.calls()[2][1])
         log = (self.project / ".claude/autopilot/demo.jsonl").read_text().splitlines()
         self.assertEqual(len(log), 3)
+        self.assertEqual(json.loads(log[0])["usage"], {"cache_read_input_tokens": 900, "output_tokens": 40, "turns": 7})
         self.assertTrue((self.workspace / "progress.html").is_file())
         self.assertIn("Progress dashboard:", done.stdout)
 
@@ -177,6 +179,11 @@ class AutopilotTest(unittest.TestCase):
         self.write_status(status().replace("| Current phase |", "| iOS deployment target | iOS 17 |\n| Current phase |"))
         done = self.run_autopilot("--dry-run")
         self.assertIn("mobile-skill:mobile-multiplatform-sdlc", done.stdout)
+
+    def test_passes_effort_only_when_set(self):
+        self.write_status(status())
+        self.assertNotIn("--effort", self.run_autopilot("--dry-run").stdout)
+        self.assertIn("--effort high", self.run_autopilot("--dry-run", "--effort", "high").stdout)
 
 
 class StatusParserTest(unittest.TestCase):

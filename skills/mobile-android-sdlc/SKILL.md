@@ -50,7 +50,7 @@ A gated, document-driven lifecycle for building a native Android app in Kotlin, 
 A small feature may combine G2 and G3 into one review. **G5 is never skipped or combined.**
 
 ## How Claude runs this workflow
-1. **Workspace.** In the target project, open `docs/sdlc/<initiative-slug>/STATUS.md`. If it exists, resume at the phase it records, starting from its `## Handoff`. If not, create it from [templates/status.md](templates/status.md).
+1. **Workspace.** In the target project, find `docs/sdlc/<initiative-slug>/STATUS.md`. If it exists, resume from its `## Handoff`; the SessionStart hook already shows it with the phase and the next plan row, so read only the STATUS.md sections the task needs (the gate log, the current plan, open items). If not, create it from [templates/status.md](templates/status.md).
 2. **Facts.**
    - In an existing Android project, read `settings.gradle.kts`, `gradle/libs.versions.toml`, the module `build.gradle.kts` files, `CLAUDE.md` and `.claude/rules/`. Record the modules, `minSdk`/`targetSdk`/`compileSdk` and the stack in STATUS.md. Don't contradict them without an ADR.
    - When a backend, an API contract or a design already exists, read them as inputs:
@@ -58,7 +58,7 @@ A small feature may combine G2 and G3 into one review. **G5 is never skipped or 
      - the backend's own requirements, and the rules it sets for clients (headers, retries, polling, minimum app versions);
      - every screen of the design.
 
-     Record each source in STATUS.md. Cite upstream IDs with a prefix (e.g. `BE-FR-003`), so they don't clash with the app's own, and fill the RTM's **Upstream source** column.
+     Save a copy of each, with its source and version, under the workspace's `inputs/`, so later sessions don't re-fetch it. Record each source in STATUS.md. Cite upstream IDs with a prefix (e.g. `BE-FR-003`), so they don't clash with the app's own, and fill the RTM's **Upstream source** column.
 3. **Scope.** Confirm with the user:
    - new app or feature;
    - target users and devices;
@@ -68,16 +68,19 @@ A small feature may combine G2 and G3 into one review. **G5 is never skipped or 
 
    Record the answers and pick the tailoring column.
 4. **Load only what's needed:** the current phase file and the references its **Load** line lists. If STATUS.md doesn't show the previous gate as approved, stop and say so.
+   Read the workspace's documents and inputs the same way. For any file over about 24 KB (STATUS.md, designs, the architecture, contracts), read only the sections the Handoff's **Load** names, by line range; the plugin's Read hook refuses any Read of more than 24 KB under `docs/sdlc/`, whole file or range, and returns the file's outline with line numbers. Reading a whole architecture, design or contract file costs every later call in the session.
 5. **Write the deliverables** from `templates/` into the workspace.
    - Mark unknowns `TBD-<n>` and assumptions `ASSUMPTION:`, and list them in STATUS.md.
    - Ask the user for what only stakeholders can decide: targets, priorities, approvers.
    - Never invent requirements, numbers, approvals or sign-offs.
    - Mark any number Claude suggests (an NFR target, a limit) as **(proposed)**. Confirming those numbers is a TBD that blocks G1.
-6. **Trace.** Add every new requirement, design element and test to `rtm.md`.
+6. **Trace.** Add every new requirement, design element and test to `rtm.md`, all in one edit (or one Write) rather than one edit per row.
 7. **Gate review.** Run the phase's exit checklist. Present the deliverables and their status, the checklist results, open TBDs, top risks, and a recommendation: approve, approve with conditions, or rework.
 8. **STOP for sign-off.** Ask for the decision and the approver's name and role. Record both in the STATUS.md gate log and suggest a git tag (`sdlc/<slug>/G<n>`). A waiver records the accepted risk and who accepted it.
 9. **After a baseline,** every change to an approved deliverable goes through a [change request](templates/change-request.md): RTM impact analysis → decision → update the affected deliverables → re-check the affected gates.
-10. **End of session.** Finish one unit of work per session. Before stopping, update the deliverable, its row in STATUS.md's current `## Phase <n> plan`, and rewrite the `## Handoff` section from the template. In [autopilot](#autopilot) the next session starts on its own, so don't tell the user to `/clear`.
+   Once the gate decision is in the gate log, move that phase's `## Phase <n> plan` and its `## G<n> review` to `STATUS-archive.md` in the workspace. STATUS.md is read every session, so it holds only what is current.
+10. **End of session.** Finish one unit of work per session. Before stopping, update the deliverable, its row in STATUS.md's current `## Phase <n> plan`, and rewrite the `## Handoff` section from the template. Group the STATUS.md changes into as few edits as you can: by now the context is at its largest, and every tool call re-sends all of it. In [autopilot](#autopilot) the next session starts on its own, so don't tell the user to `/clear`.
+    The plugin's hook rewrites `progress.html` after every STATUS.md edit, so it shows as changed in `git status`; that change is expected and needs no check.
 
 **Partial use.** If the user wants a single deliverable (e.g. "write the feature design for login"), produce just that one, following its phase's guidance. Mention any missing upstream inputs, but don't force the whole lifecycle.
 
@@ -92,6 +95,7 @@ docs/sdlc/<initiative-slug>/
 ├── design/<feature>.md     # Phase 3
 ├── test-plan.md            # Phases 1–5 (+ test summary report)
 ├── release-checklist.md    # Phase 6
+├── inputs/                 # cached external sources (contracts, design exports)
 ├── cr/CR-NNN-<title>.md    # after any baseline
 └── postmortem/PM-NNN-<title>.md  # Phase 7, after each S1 incident
 ```
@@ -102,17 +106,19 @@ Unattended mode: a driver script starts a fresh headless session (`claude -p`) f
 **Starting it** (interactive session, when the user asks for autopilot):
 1. Check that Scope (step 3) is done and STATUS.md has a `## Phase <n> plan` with real rows. If not, do those first, with the user.
 2. In Phase 4, **Code review mode** must be *Review after writing*. *Approve before writing* needs the owner for every PR, so autopilot refuses it.
-3. Run, from the project root, with Bash `run_in_background`: `python3 <this skill's base directory>/../../scripts/autopilot.py --workspace docs/sdlc/<slug>`. Use `--dry-run` first to show the user the command. Options: `--max-sessions` (default 20), `--budget-usd`, `--session-timeout` (minutes).
+3. Run, from the project root, with Bash `run_in_background`: `python3 <this skill's base directory>/../../scripts/autopilot.py --workspace docs/sdlc/<slug>`. Use `--dry-run` first to show the user the command. Options: `--model` and `--effort` (default: Claude Code's), `--max-sessions` (default 20), `--budget-usd`, `--session-timeout` (minutes).
 4. Tell the user it stops by itself when it needs them, that `TaskStop` (or Ctrl-C) stops it early, and that each session is logged in `.claude/autopilot/<slug>.jsonl`.
 
 **The driver stops when:** the Handoff's **Waiting on user** isn't "nothing"; the next plan row is `Blocked`; a session fails, changes nothing in STATUS.md, or ends with `AUTOPILOT-RESULT: stop`; or the session or budget cap is reached. It denies `git push`, `gh`, merges, rebases, hard resets and `AskUserQuestion`; the baseline gate's confirm becomes a denial.
 
 **Inside an autopilot session** (the prompt says AUTOPILOT):
 - Do exactly one plan row, then the End of session step (10). If the plan has no open row: when the gate log approves the current phase's gate, set the next phase in STATUS.md and write its `## Phase <n> plan`; otherwise run the gate review (step 7).
+- **Large rows:** split by content, not by how the session feels. A row that writes a whole feature design does §1–§4, saves them, leaves the row `In progress`, puts §5–§9 and the RTM in the Handoff's **Next action**, and ends with `AUTOPILOT-RESULT: continue`. Stop the same way in any phase once you have written about 24 KB of one deliverable.
+- **Cut-off sessions:** if `git status` shows work the Handoff doesn't mention (an earlier session may have been cut off), continue from it instead of starting the row over.
 - **Never ask.** Anything only the owner can decide (step 5) becomes an Open item; set the row to `Blocked: <reason>` and **Waiting on user** to the decision, then stop. **(proposed)** numbers stay proposed.
 - **Gate row:** run the exit checklist and write the gate review (checklist results, open TBDs, top risks, recommendation) as a `## G<n> review` section just above the Handoff. Set **Waiting on user** to `G<n> sign-off`. Never write the gate log or a tag.
 - **Baselines:** never edit an Approved deliverable. A needed change becomes a draft CR, and the row is Blocked on its approval.
-- **Phase 4:** one PR row per session. Create its branch (`feature/<ticket-id>-<desc>`, per the project's git rules) from the current HEAD, so it stacks on the previous unmerged PR. Implement it, run `./gradlew ktlintCheck detekt test` (and the project's own pre-merge checks), fix what fails, then update the RTM and STATUS.md and commit them with the code, citing the ticket and FR IDs. If the checks can't be made green, commit nothing and set the row Blocked. Never push or open a PR: the user does, and reviews each one.
+- **Phase 4:** one PR row per session. Create its branch (`feature/<ticket-id>-<desc>`, per the project's git rules) from the current HEAD, so it stacks on the previous unmerged PR. Implement it, run `./gradlew ktlintCheck detekt test` (and the project's own pre-merge checks), fix what fails, then update the RTM and STATUS.md and commit them with the code, citing the ticket and FR IDs. If the checks can't be made green, commit nothing and set the row Blocked. Never push, upload a build to a Play track, or open a PR: the user does, and reviews each one.
 - **Last line of the reply:** `AUTOPILOT-RESULT: continue`, or `AUTOPILOT-RESULT: stop <reason>` when the next session can't make progress without the user.
 
 ## File index

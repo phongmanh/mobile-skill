@@ -159,11 +159,26 @@ def build_command(args, prompt, budget_left):
     ]
     if budget_left is not None:
         command += ["--max-budget-usd", f"{budget_left:.2f}"]
+    if getattr(args, "model", None):
+        command += ["--model", args.model]
+    if getattr(args, "effort", None):
+        command += ["--effort", args.effort]
     return command
 
 
+def usage_summary(output):
+    """Token counts of one session from claude's JSON result, for the log (missing fields are left out)."""
+    usage = output.get("usage") or {}
+    summary = {key: usage[key] for key in (
+        "input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens",
+    ) if isinstance(usage.get(key), int)}
+    if isinstance(output.get("num_turns"), int):
+        summary["turns"] = output["num_turns"]
+    return summary
+
+
 def run_session(command, project, timeout_minutes):
-    """Runs one session; returns (result text, cost, session id). Raises Stop on failure."""
+    """Runs one session; returns (result text, cost, session id, token usage). Raises Stop on failure."""
     try:
         done = subprocess.run(
             command, cwd=project, capture_output=True, text=True, timeout=timeout_minutes * 60,
@@ -186,7 +201,7 @@ def run_session(command, project, timeout_minutes):
     if output.get("is_error"):
         raise Stop(f"The session ended with an error ({output.get('subtype', 'error')}): {result[-500:]}",
                    failed=True)
-    return result, cost, session_id
+    return result, cost, session_id, usage_summary(output)
 
 
 def result_marker(result):
@@ -233,7 +248,7 @@ def autopilot(args):
             sessions += 1
             print(paint(f"▶ Session {sessions}/{args.max_sessions} · {item}", "blue"), flush=True)
             try:
-                result, cost, session_id = run_session(command, project, args.session_timeout)
+                result, cost, session_id, usage = run_session(command, project, args.session_timeout)
             except Stop as stop:
                 log(log_file, session=sessions, item=item, outcome="failed", reason=stop.reason)
                 raise
@@ -241,7 +256,7 @@ def autopilot(args):
             marker, reason = result_marker(result)
             new_text = status_file.read_text(encoding="utf-8")
             log(log_file, session=sessions, session_id=session_id, item=item, cost_usd=round(cost, 4),
-                marker=marker, reason=reason, status_changed=new_text != text)
+                marker=marker, reason=reason, status_changed=new_text != text, usage=usage)
             print(paint(f"  ✔ done · ${cost:.2f} · session {session_id}{': ' + reason if reason else ''}", "green"),
                   flush=True)
             if args.dashboard:
@@ -262,6 +277,9 @@ def parse_args(argv):
     parser.add_argument("--project", default=".", help="the target project's root (default: current directory)")
     parser.add_argument("--workspace", help="docs/sdlc/<slug>, relative to the project (default: the only one)")
     parser.add_argument("--skill", choices=SKILLS, help="default: detected from STATUS.md")
+    parser.add_argument("--model", help="model for each session (default: Claude Code's)")
+    parser.add_argument("--effort", choices=("low", "medium", "high", "xhigh", "max"),
+                        help="effort for each session (default: Claude Code's)")
     parser.add_argument("--max-sessions", type=int, default=20)
     parser.add_argument("--budget-usd", type=float, help="stop once the sessions together have cost this much")
     parser.add_argument("--session-timeout", type=int, default=90, help="minutes per session (default: 90)")

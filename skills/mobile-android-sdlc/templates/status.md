@@ -14,7 +14,7 @@
 | Security level | MASVS-L1 / L2 (+R) |
 | Compliance | e.g. GDPR, COPPA, Google Play policies |
 | Product owner / Tech lead | <name, role> / <name, role> |
-| Inputs | e.g. backend contract `<repo>/docs/api/openapi.yaml` v<x>, design `<link>` (or "none") |
+| Inputs | e.g. backend contract `inputs/openapi.yaml` v<x>, design `<link>` (or "none") |
 | Code review mode | Approve before writing / Review after writing (each PR) |
 | Current phase | 1 Requirements |
 | Tailoring | Full (app) / Light (feature) |
@@ -63,7 +63,7 @@ A TBD that blocks a Must requirement blocks the gate.
 |---|---|---|---|---|---|
 
 ## Phase 1 plan
-One row per unit of work, each sized for one session. Start a new `## Phase <n> plan` table when a phase starts; the SessionStart hook reads the newest one and shows its first row that isn't Done. Status is one of: Not started / In progress / Done / Blocked: <reason>. Autopilot stops at a Blocked row.
+One row per unit of work, each sized for one session: in Phase 3, half a feature design per row (§1–§4, then §5–§9 and the RTM); one row only for a design that will stay under about 24 KB. Start a new `## Phase <n> plan` table when a phase starts; the SessionStart hook reads the newest one and shows its first row that isn't Done. Status is one of: Not started / In progress / Done / Blocked: <reason>. Autopilot stops at a Blocked row.
 
 | # | Work | Covers | Needs from the owner | Status |
 |---|---|---|---|---|
@@ -74,6 +74,6 @@ One row per unit of work, each sized for one session. Start a new `## Phase <n> 
 - **Last session:** YYYY-MM-DD — <what got done, one line>
 - **State:** <e.g. "G1 awaiting sign-off">
 - **Next action:** <the exact first step for the next session>
-- **Load:** <files and sections to read first>
+- **Load:** <the few sections the next action needs first, with line ranges, e.g. `design/notes.md` §2 domain (L20–31); not other features' internals>
 - **Inputs:** <where external sources are cached or pinned, with versions and commits, or "none">
 - **Waiting on user:** <decision, approval or review, or "nothing">
