@@ -102,11 +102,39 @@ def workspaces(project):
     return [status.parent for status in sorted(project.glob("docs/sdlc/*/STATUS.md"))]
 
 
+# Skill names before 0.6.0, still found in older STATUS.md files and accepted by --skill.
+OLD_SKILL_NAMES = {"mobile-android-sdlc": "android", "mobile-multiplatform-sdlc": "multiplatform"}
+
+
+def skill_name(name):
+    """The current skill name for a current or pre-0.6.0 one."""
+    return OLD_SKILL_NAMES.get(name, name)
+
+
+SKILL_STAMP = re.compile(r"`(android|multiplatform|mobile-android-sdlc|mobile-multiplatform-sdlc)` skill")
+
+
+def detect_skill_with_reason(text):
+    """(skill, why) for the mobile skill that owns a STATUS.md.
+
+    The template's stamp, e.g. "(`android` skill)", wins, but only in the intro
+    above the first table or heading: a Decisions row that merely mentions the
+    other skill must not flip it. Without a stamp, iOS header fields mean
+    multiplatform; otherwise it is android.
+    """
+    intro = re.split(r"^(?:\||## )", text, maxsplit=1, flags=re.MULTILINE)[0]
+    stamp = SKILL_STAMP.search(intro)
+    if stamp:
+        return skill_name(stamp.group(1)), f"STATUS.md names the `{stamp.group(1)}` skill"
+    for name in ("iOS deployment target", "Platforms"):
+        if field(text, name):
+            return "multiplatform", f"STATUS.md has a {name} row"
+    return "android", "STATUS.md has no iOS fields"
+
+
 def detect_skill(text):
-    """The mobile skill that owns a STATUS.md: multiplatform when its header names iOS fields."""
-    if "mobile-multiplatform-sdlc" in text or field(text, "iOS deployment target") or field(text, "Platforms"):
-        return "mobile-multiplatform-sdlc"
-    return "mobile-android-sdlc"
+    """The mobile skill that owns a STATUS.md (see detect_skill_with_reason)."""
+    return detect_skill_with_reason(text)[0]
 
 
 def phase_number(text):

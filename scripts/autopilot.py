@@ -18,7 +18,7 @@ Autopilot never records gate decisions, never pushes and never opens PRs.
 The skills' "## Autopilot" section has the rules each session follows.
 
 Usage, from the target project's root:
-    python3 <plugin>/scripts/autopilot.py [--workspace docs/sdlc/<slug>] [--dry-run]
+    python3 <plugin>/scripts/autopilot.py [--workspace docs/sdlc/<slug>] [--skill android|multiplatform] [--dry-run]
 """
 import argparse
 import datetime
@@ -32,10 +32,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "hooks"))
 from sdlc_status import (  # noqa: E402
-    detect_skill, field, handoff_field, newest_plan, next_plan_row, phase_number, plan_rows, workspaces,
+    OLD_SKILL_NAMES, detect_skill_with_reason, field, handoff_field, newest_plan, next_plan_row, phase_number, plan_rows,
+    skill_name, workspaces,
 )
 
-SKILLS = ("mobile-android-sdlc", "mobile-multiplatform-sdlc")
+SKILLS = ("android", "multiplatform")
 RESULT_LINE = re.compile(r"^AUTOPILOT-RESULT:\s*(continue|stop)\b\s*(.*)$", re.IGNORECASE)
 NOTHING = ("nothing", "none", "—", "-", "n/a")
 
@@ -225,8 +226,13 @@ def autopilot(args):
     status_file = workspace / "STATUS.md"
     log_file = project / ".claude/autopilot" / f"{workspace.name}.jsonl"
     text = status_file.read_text(encoding="utf-8")
-    skill = args.skill or detect_skill(text)
+    detected, why = detect_skill_with_reason(text)
+    skill = skill_name(args.skill) if args.skill else detected
+    source = "from --skill" if args.skill else f"detected: {why}"
     check_ready(text)
+    if skill != detected:
+        print(paint(f"⚠ --skill {skill}, but the workspace looks like {detected} ({why}). "
+                    f"Every session will run mobile-skill:{skill}.", "amber"), flush=True)
 
     spent, sessions, dashboard = 0.0, 0, None
     try:
@@ -242,7 +248,7 @@ def autopilot(args):
             item = f"{row['plan']} #{row['number']}: {row['work']}" if row else "advance to the next phase"
             command = build_command(args, session_prompt(skill, workspace_rel, row), budget_left)
             if args.dry_run:
-                print(f"[dry run] next session: {item}\n{shlex.join(command)}")
+                print(f"[dry run] skill: {skill} ({source})\n[dry run] next session: {item}\n{shlex.join(command)}")
                 raise Stop("Dry run: no session started.")
 
             sessions += 1
@@ -276,7 +282,9 @@ def parse_args(argv):
     parser = argparse.ArgumentParser(description="Run the mobile SDLC skills unattended, one session per plan item.")
     parser.add_argument("--project", default=".", help="the target project's root (default: current directory)")
     parser.add_argument("--workspace", help="docs/sdlc/<slug>, relative to the project (default: the only one)")
-    parser.add_argument("--skill", choices=SKILLS, help="default: detected from STATUS.md")
+    parser.add_argument("--skill", choices=SKILLS + tuple(OLD_SKILL_NAMES),
+                        help="the platform skill each session runs: android or multiplatform "
+                             "(default: detected from STATUS.md)")
     parser.add_argument("--model", help="model for each session (default: Claude Code's)")
     parser.add_argument("--effort", choices=("low", "medium", "high", "xhigh", "max"),
                         help="effort for each session (default: Claude Code's)")

@@ -1,21 +1,23 @@
 # STATUS: <Initiative name>
 
-> The control file for the Android SDLC workflow. Claude reads it first to resume work.
+> The control file for the Compose Multiplatform SDLC workflow (`multiplatform` skill). Claude reads it first to resume work.
 >
 > Keep it current. It's the single place for gate decisions, risks and open items.
 
 | Field | Value |
 |---|---|
 | Initiative | <name> (`docs/sdlc/<initiative-slug>/`) |
-| Type | New app / Feature in <app> |
-| Application ID | e.g. `com.example.notes` |
-| SDK levels | minSdk <n> · targetSdk <n> · compileSdk <n> |
-| Module layout | Layer modules / Feature + core modules (ADR-<n>) |
+| Type | New app / Android app brought to iOS / Feature in <app> |
+| Platforms | Android · iOS (desktop and web out of scope unless listed) |
+| App identifiers | Android application ID e.g. `com.example.notes` · iOS bundle ID e.g. `com.example.notes` |
+| Android SDK levels | minSdk <n> · targetSdk <n> · compileSdk <n> |
+| iOS deployment target | iOS <n> |
+| Toolchain | Kotlin <v> · Compose Multiplatform <v> · AGP <v> · Xcode <v> |
+| Module layout | One shared module / Feature + core modules (ADR-<n>) |
 | Security level | MASVS-L1 / L2 (+R) |
-| Compliance | e.g. GDPR, COPPA, Google Play policies |
+| Compliance | e.g. GDPR, COPPA, Google Play policies, App Store Review Guidelines |
+| Store accounts | Play Console: <organisation> · Apple Developer team: <name, team ID> |
 | Product owner / Tech lead | <name, role> / <name, role> |
-| Inputs | e.g. backend contract `inputs/openapi.yaml` v<x>, design `<link>` (or "none") |
-| Code review mode | Approve before writing / Review after writing (each PR) |
 | Design diagrams | On (class + sequence per feature, Mermaid) / Off |
 | Current phase | 1 Requirements |
 | Tailoring | Full (app) / Light (feature) |
@@ -26,14 +28,14 @@
 |---|---|---|---|---|
 | 1 | Requirements | requirements.md | Not started | — |
 | 1–6 | RTM | rtm.md | Not started | — |
-| 2 | Architecture + threat model | architecture.md | Not started | — |
+| 2 | Architecture + platform matrix + threat model | architecture.md | Not started | — |
 | 2+ | ADRs | adr/NNNN-<decision>.md | — | — |
 | 1–5 | Test plan + summary report | test-plan.md | Not started | — |
 | 3 | Feature designs | design/<feature>.md | Not started | — |
 | 6 | Release checklist | release-checklist.md | Not started | — |
 
 ## Gate log
-Decision is one of: Approved / Approved with conditions / Rejected / Waived.
+Decision is one of: Approved / Approved with conditions / Rejected / Waived. A decision that covers one platform only says so in the conditions.
 
 | Gate | Date | Decision | Approver (name, role) | Conditions or accepted risk | Tag |
 |---|---|---|---|---|---|
@@ -49,9 +51,9 @@ Decision is one of: Approved / Approved with conditions / Rejected / Waived.
 |---|---|---|
 
 ## Risks
-| ID | Risk ("If …, then …") | Likelihood (H/M/L) | Impact (H/M/L) | Owner | Mitigation | Status |
-|---|---|---|---|---|---|---|
-| R-01 | | | | | | Open |
+| ID | Risk ("If …, then …") | Platform (Both / Android / iOS) | Likelihood (H/M/L) | Impact (H/M/L) | Owner | Mitigation | Status |
+|---|---|---|---|---|---|---|---|
+| R-01 | | | | | | | Open |
 
 ## Change requests
 | CR ID | Title | Status | Affected items | Decision date |
@@ -64,7 +66,7 @@ A TBD that blocks a Must requirement blocks the gate.
 |---|---|---|---|---|---|
 
 ## Phase 1 plan
-One row per unit of work, each sized for one session: in Phase 3, half a feature design per row (§1–§4, then §5–§10 and the RTM); one row only for a design that will stay under about 24 KB. Start a new `## Phase <n> plan` table when a phase starts; the SessionStart hook reads the newest one and shows its first row that isn't Done. Status is one of: Not started / In progress / Done / Blocked: <reason>. Autopilot stops at a Blocked row.
+One row per unit of work, each sized for one session: in Phase 3, half a feature design per row (§1–§5, then §6–§11 and the RTM); one row only for a design that will stay under about 24 KB. Start a new `## Phase <n> plan` table when a phase starts; the SessionStart hook reads the newest one and shows its first row that isn't Done. Status is one of: Not started / In progress / Done / Blocked: <reason>. Autopilot stops at a Blocked row.
 
 | # | Work | Covers | Needs from the owner | Status |
 |---|---|---|---|---|

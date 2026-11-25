@@ -130,7 +130,7 @@ class RenderTest(unittest.TestCase):
         self.assertIn("<h1>Tiny</h1>", page)
 
     def test_the_blank_template_renders_without_placeholders(self):
-        for skill in ("mobile-android-sdlc", "mobile-multiplatform-sdlc"):
+        for skill in ("android", "multiplatform"):
             with self.subTest(skill=skill):
                 text = (REPO / "skills" / skill / "templates/status.md").read_text(encoding="utf-8")
                 page = render(text)
