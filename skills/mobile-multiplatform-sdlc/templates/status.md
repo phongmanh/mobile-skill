@@ -18,6 +18,7 @@
 | Compliance | e.g. GDPR, COPPA, Google Play policies, App Store Review Guidelines |
 | Store accounts | Play Console: <organisation> · Apple Developer team: <name, team ID> |
 | Product owner / Tech lead | <name, role> / <name, role> |
+| Design diagrams | On (class + sequence per feature, Mermaid) / Off |
 | Current phase | 1 Requirements |
 | Tailoring | Full (app) / Light (feature) |
 | Last updated | YYYY-MM-DD |
@@ -65,7 +66,7 @@ A TBD that blocks a Must requirement blocks the gate.
 |---|---|---|---|---|---|
 
 ## Phase 1 plan
-One row per unit of work, each sized for one session: in Phase 3, half a feature design per row (§1–§5, then §6–§10 and the RTM); one row only for a design that will stay under about 24 KB. Start a new `## Phase <n> plan` table when a phase starts; the SessionStart hook reads the newest one and shows its first row that isn't Done. Status is one of: Not started / In progress / Done / Blocked: <reason>. Autopilot stops at a Blocked row.
+One row per unit of work, each sized for one session: in Phase 3, half a feature design per row (§1–§5, then §6–§11 and the RTM); one row only for a design that will stay under about 24 KB. Start a new `## Phase <n> plan` table when a phase starts; the SessionStart hook reads the newest one and shows its first row that isn't Done. Status is one of: Not started / In progress / Done / Blocked: <reason>. Autopilot stops at a Blocked row.
 
 | # | Work | Covers | Needs from the owner | Status |
 |---|---|---|---|---|

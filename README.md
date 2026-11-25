@@ -15,7 +15,7 @@ A Claude Code plugin for building mobile apps phase by phase, with a gated water
 | `mobile-multiplatform-sdlc` | One Kotlin codebase for Android and iOS: Kotlin Multiplatform + Compose Multiplatform, shared Clean Architecture + MVVM in `commonMain`, Koin, Ktor, Room KMP, iOS/Swift interop, Google Play and App Store release | `/mobile-skill:mobile-multiplatform-sdlc` |
 | `progress` | Where the work stands: a short summary, plus a colorful dashboard page that opens in your browser | `/mobile-skill:progress [slug]` |
 
-Claude also picks a skill on its own when you ask it to plan, design, build, test or release an app or feature that way. Each skill bundles phase guides, references (architecture, code patterns, UI/UX, security and privacy, performance, testing, a PR review checklist) and deliverable templates.
+Claude also picks a skill on its own when you ask it to plan, design, build, test or release an app or feature that way. Each skill bundles phase guides, references (architecture, code patterns, UI/UX, security and privacy, performance, testing, a PR review checklist) and deliverable templates. Feature designs can include Mermaid class and sequence diagrams for review (asked at scope, on by default), and the code's KDocs link back to them.
 
 The deliverables live in your project under `docs/sdlc/<initiative-slug>/`, with `STATUS.md` as the control file: phase, gate log, risks, change requests, the current phase plan and the session handoff.
 

@@ -15,7 +15,7 @@ This is the canonical Kotlin (and the little Swift) for each concern in a Compos
 - **Named arguments** for booleans and for parameters of the same type: `Note(id = id, title = title, …)`.
 - **No magic values:** `private const val` for constants; `composeResources` for anything the user sees.
 - **Visibility:** `internal` by default in modules, `private` within files. Only what Swift or another module needs is public.
-- **Comments** explain *why*, never *what*. KDoc only on public APIs that aren't obvious.
+- **Comments** explain *why*, never *what*. KDoc only on public APIs that aren't obvious, plus one exception: when STATUS.md has **Design diagrams** = On, the feature's entry classes (ViewModel, repository interface, each UseCase) carry a one-line KDoc that links to the design's diagrams, e.g. `/** Loads and refreshes the notes list. Design: docs/sdlc/<slug>/design/notes.md §5. */`.
 
 ## Domain (pure common Kotlin)
 ```kotlin

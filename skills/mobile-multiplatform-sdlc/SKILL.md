@@ -66,7 +66,8 @@ A gated, document-driven lifecycle for an app that ships to **Android and iOS fr
    - target users and devices on each platform;
    - compliance (e.g. GDPR, COPPA, HIPAA) and the MASVS level;
    - anything that must stay native (e.g. a widget, a watch app, an SDK without a KMP binding);
-   - existing documents to reuse.
+   - existing documents to reuse;
+   - whether feature designs include class and sequence diagrams (Mermaid, linked from KDoc in Phase 4); suggest on.
 
    Record the answers and pick the tailoring column.
 4. **Load only what's needed:** the current phase file and the references its **Load** line lists. If STATUS.md doesn't show the previous gate as approved, stop and say so.
@@ -112,7 +113,7 @@ Unattended mode: a driver script starts a fresh headless session (`claude -p`) f
 
 **Inside an autopilot session** (the prompt says AUTOPILOT):
 - Do exactly one plan row, then the End of session step (10). If the plan has no open row: when the gate log approves the current phase's gate, set the next phase in STATUS.md and write its `## Phase <n> plan`; otherwise run the gate review (step 7).
-- **Large rows:** split by content, not by how the session feels. A row that writes a whole feature design does §1–§5, saves them, leaves the row `In progress`, puts §6–§10 and the RTM in the Handoff's **Next action**, and ends with `AUTOPILOT-RESULT: continue`. Stop the same way in any phase once you have written about 24 KB of one deliverable.
+- **Large rows:** split by content, not by how the session feels. A row that writes a whole feature design does §1–§5, saves them, leaves the row `In progress`, puts §6–§11 and the RTM in the Handoff's **Next action**, and ends with `AUTOPILOT-RESULT: continue`. Stop the same way in any phase once you have written about 24 KB of one deliverable.
 - **Cut-off sessions:** if `git status` shows work the Handoff doesn't mention (an earlier session may have been cut off), continue from it instead of starting the row over.
 - **Never ask.** Anything only the owner can decide (step 5) becomes an Open item; set the row to `Blocked: <reason>` and **Waiting on user** to the decision, then stop. **(proposed)** numbers stay proposed.
 - **Gate row:** run the exit checklist and write the gate review (checklist results, open TBDs, top risks, recommendation) as a `## G<n> review` section just above the Handoff. Set **Waiting on user** to `G<n> sign-off`. Never write the gate log or a tag.

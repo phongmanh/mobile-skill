@@ -52,6 +52,7 @@ Each step is one or more PRs, taken from the feature design's slice plan. Buildi
 - Hard-code nothing: no strings, colours, dimensions, URLs or secrets.
 - Handle every error path in the design. Never swallow an exception, and never let one escape into Swift.
 - Add the analytics events and logs from the design. Never log PII or tokens.
+- If design diagrams are on, give the feature's entry classes the KDoc link to the design's diagrams (§5); see the [comments rule](../reference/code-patterns.md). Link, don't copy: the diagram lives in one place.
 - **Run it on both platforms before the PR.** A change to shared UI is checked on an iOS simulator, not only in previews.
 
 ### CI pipeline
