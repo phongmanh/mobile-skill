@@ -172,13 +172,29 @@ class AutopilotTest(unittest.TestCase):
         self.assertEqual(self.calls(), [])
         self.assertIn("--disallowedTools", done.stdout)
         self.assertIn("'Bash(git push*)'", done.stdout)
-        self.assertIn("mobile-skill:mobile-android-sdlc", done.stdout)
+        self.assertIn("mobile-skill:android ", done.stdout)
+        self.assertIn("skill: android (detected from STATUS.md)", done.stdout)
         self.assertFalse((self.workspace / "progress.html").exists())
 
     def test_detects_the_multiplatform_skill(self):
         self.write_status(status().replace("| Current phase |", "| iOS deployment target | iOS 17 |\n| Current phase |"))
         done = self.run_autopilot("--dry-run")
-        self.assertIn("mobile-skill:mobile-multiplatform-sdlc", done.stdout)
+        self.assertIn("mobile-skill:multiplatform ", done.stdout)
+
+    def test_detects_multiplatform_from_the_old_skill_name(self):
+        self.write_status(status().replace("# STATUS", "> (`mobile-multiplatform-sdlc` skill)\n\n# STATUS", 1))
+        self.assertIn("mobile-skill:multiplatform ", self.run_autopilot("--dry-run").stdout)
+
+    def test_skill_option_overrides_detection(self):
+        self.write_status(status())
+        done = self.run_autopilot("--dry-run", "--skill", "multiplatform")
+        self.assertIn("mobile-skill:multiplatform ", done.stdout)
+        self.assertIn("skill: multiplatform (from --skill)", done.stdout)
+
+    def test_skill_option_accepts_the_old_names(self):
+        self.write_status(status())
+        done = self.run_autopilot("--dry-run", "--skill", "mobile-android-sdlc")
+        self.assertIn("mobile-skill:android ", done.stdout)
 
     def test_passes_effort_only_when_set(self):
         self.write_status(status())

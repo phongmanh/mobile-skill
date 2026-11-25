@@ -102,11 +102,21 @@ def workspaces(project):
     return [status.parent for status in sorted(project.glob("docs/sdlc/*/STATUS.md"))]
 
 
+# Skill names before 0.6.0, still found in older STATUS.md files and accepted by --skill.
+OLD_SKILL_NAMES = {"mobile-android-sdlc": "android", "mobile-multiplatform-sdlc": "multiplatform"}
+
+
+def skill_name(name):
+    """The current skill name for a current or pre-0.6.0 one."""
+    return OLD_SKILL_NAMES.get(name, name)
+
+
 def detect_skill(text):
-    """The mobile skill that owns a STATUS.md: multiplatform when its header names iOS fields."""
-    if "mobile-multiplatform-sdlc" in text or field(text, "iOS deployment target") or field(text, "Platforms"):
-        return "mobile-multiplatform-sdlc"
-    return "mobile-android-sdlc"
+    """The mobile skill that owns a STATUS.md: multiplatform when it names that skill or iOS fields."""
+    if ("mobile-multiplatform-sdlc" in text or "`multiplatform` skill" in text
+            or field(text, "iOS deployment target") or field(text, "Platforms")):
+        return "multiplatform"
+    return "android"
 
 
 def phase_number(text):

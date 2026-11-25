@@ -68,9 +68,8 @@ def phase_names(text, skill_dir=None, names=None):
     if names:
         return {i + 1: name.strip() for i, name in enumerate(names) if name.strip()}
     if skill_dir is None:
-        owners = [path.parent for path in sorted((PLUGIN / "skills").glob("*/phases"))]
-        mentioned = [d for d in owners if re.search(rf"(?<![\w-]){re.escape(d.name)}(?![\w-])", text)]
-        skill_dir = mentioned[0] if mentioned else PLUGIN / "skills" / detect_skill(text)
+        # Not a name search: "android" appears in multiplatform STATUS.md files too.
+        skill_dir = PLUGIN / "skills" / detect_skill(text)
     found = names_from_skill_dir(skill_dir) if Path(skill_dir).is_dir() else {}
     if found:
         return found

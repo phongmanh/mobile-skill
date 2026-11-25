@@ -1,6 +1,6 @@
 ---
-name: mobile-multiplatform-sdlc
-description: Waterfall lifecycle for an Android + iOS app or feature built with Kotlin Multiplatform and Compose Multiplatform (shared logic and UI) - requirements, architecture, detailed design, implementation, testing, Google Play and App Store release, maintenance - with phase gates, sign-offs, traceability and change control. Bundles KMP best practices (source sets, expect/actual vs interfaces, Clean Architecture + MVVM in commonMain, Compose Multiplatform + Material 3, Koin, Ktor, Room KMP, iOS/Swift interop, OWASP MASVS on both platforms, testing, performance, accessibility), canonical code patterns, a PR review checklist and deliverable templates. Use when planning, designing, building, testing or releasing a KMP/CMP app or feature for Android and iOS, when bringing an Android app to iOS, when writing those documents for a KMP project, or when the user mentions waterfall, SDLC, V-model or phase gates for a cross-platform Kotlin app, or when the user wants the workflow to run unattended (autopilot), one fresh session per task.
+name: multiplatform
+description: Waterfall lifecycle for an Android + iOS app or feature built with Kotlin Multiplatform and Compose Multiplatform (shared logic and UI) - requirements, architecture, detailed design, implementation, testing, Google Play and App Store release, maintenance - with phase gates, sign-offs, traceability and change control. Bundles KMP best practices (source sets, expect/actual vs interfaces, Clean Architecture + MVVM in commonMain, Compose Multiplatform + Material 3, Koin, Ktor, Room KMP, iOS/Swift interop, OWASP MASVS on both platforms, testing, performance, accessibility), canonical code patterns, a PR review checklist and deliverable templates. Use when planning, designing, building, testing or releasing a KMP/CMP app or feature for Android and iOS, when bringing an Android app to iOS, when writing those documents for a KMP project, or when the user mentions waterfall, SDLC, V-model or phase gates for a cross-platform Kotlin app, or when a prompt says AUTOPILOT (sessions started by /mobile-skill:autopilot).
 
 ---
 
@@ -103,11 +103,7 @@ docs/sdlc/<initiative-slug>/
 ## Autopilot
 Unattended mode: a driver script starts a fresh headless session (`claude -p`) for each row of the current phase plan, and the SessionStart hook hands each one the handoff. Nobody answers questions in these sessions. **Gates still stop:** autopilot never records a gate decision.
 
-**Starting it** (interactive session, when the user asks for autopilot):
-1. Check that Scope (step 3) is done and STATUS.md has a `## Phase <n> plan` with real rows. If not, do those first, with the user.
-2. In Phase 4, the owner reviews each PR after it's written (pushing and merging stay with them).
-3. Run, from the project root, with Bash `run_in_background`: `python3 <this skill's base directory>/../../scripts/autopilot.py --workspace docs/sdlc/<slug>`. Use `--dry-run` first to show the user the command. Options: `--model` and `--effort` (default: Claude Code's), `--max-sessions` (default 20), `--budget-usd`, `--session-timeout` (minutes).
-4. Tell the user it stops by itself when it needs them, that `TaskStop` (or Ctrl-C) stops it early, and that each session is logged in `.claude/autopilot/<slug>.jsonl`.
+**Starting it:** the user runs `/mobile-skill:autopilot multiplatform [slug]`. That skill checks the workspace is ready, shows a dry run and starts the driver.
 
 **The driver stops when:** the Handoff's **Waiting on user** isn't "nothing"; the next plan row is `Blocked`; a session fails, changes nothing in STATUS.md, or ends with `AUTOPILOT-RESULT: stop`; or the session or budget cap is reached. It denies `git push`, `gh`, merges, rebases, hard resets and `AskUserQuestion`; the baseline gate's confirm becomes a denial.
 

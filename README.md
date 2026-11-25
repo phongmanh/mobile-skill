@@ -11,9 +11,12 @@ A Claude Code plugin for building mobile apps phase by phase, with a gated water
 ## Skills
 | Skill | For | Run |
 |---|---|---|
-| `mobile-android-sdlc` | A native Android app or feature in Kotlin: Clean Architecture + MVVM, Jetpack Compose + Material 3, Hilt, Coroutines/Flow, Room, OWASP MASVS, Google Play release | `/mobile-skill:mobile-android-sdlc` |
-| `mobile-multiplatform-sdlc` | One Kotlin codebase for Android and iOS: Kotlin Multiplatform + Compose Multiplatform, shared Clean Architecture + MVVM in `commonMain`, Koin, Ktor, Room KMP, iOS/Swift interop, Google Play and App Store release | `/mobile-skill:mobile-multiplatform-sdlc` |
+| `android` | A native Android app or feature in Kotlin: Clean Architecture + MVVM, Jetpack Compose + Material 3, Hilt, Coroutines/Flow, Room, OWASP MASVS, Google Play release | `/mobile-skill:android` |
+| `multiplatform` | One Kotlin codebase for Android and iOS: Kotlin Multiplatform + Compose Multiplatform, shared Clean Architecture + MVVM in `commonMain`, Koin, Ktor, Room KMP, iOS/Swift interop, Google Play and App Store release | `/mobile-skill:multiplatform` |
+| `autopilot` | Runs the android or multiplatform workflow unattended, one fresh session per plan row, until it needs you | `/mobile-skill:autopilot [android\|multiplatform] [slug]` |
 | `progress` | Where the work stands: a short summary, plus a colorful dashboard page that opens in your browser | `/mobile-skill:progress [slug]` |
+
+Before 0.6.0 the two SDLC skills were `mobile-android-sdlc` and `mobile-multiplatform-sdlc`. Existing `STATUS.md` files keep working, and `--skill` still accepts the old names.
 
 Claude also picks a skill on its own when you ask it to plan, design, build, test or release an app or feature that way. Each skill bundles phase guides, references (architecture, code patterns, UI/UX, security and privacy, performance, testing, a PR review checklist) and deliverable templates. Feature designs can include Mermaid class and sequence diagrams for review (asked at scope, on by default), and the code's KDocs link back to them.
 
@@ -50,11 +53,17 @@ Outside Claude Code, run the script from anywhere in your project: `python3 <plu
 ## Autopilot
 Runs the workflow unattended: `scripts/autopilot.py` starts a fresh headless session (`claude -p`) for each row of the current `## Phase N plan`, and the `session-context.py` hook hands each one the last handoff. Gates still stop: autopilot never records a sign-off.
 
-Do scope and the first phase plan interactively, then ask Claude to "run autopilot", or run it yourself from the project root. The script is in the installed plugin (`~/.claude/plugins/cache/mobile-skill/mobile-skill/<version>/scripts/`) or your clone of this repo:
+Do scope and the first phase plan interactively, then run `/mobile-skill:autopilot` with the platform:
+```
+/mobile-skill:autopilot android notes-app
+/mobile-skill:autopilot multiplatform notes-app --budget-usd 20
+```
+Without a platform it is detected from `STATUS.md` (multiplatform when it has iOS fields), and Claude asks you to confirm. You can also run the driver yourself from the project root. The script is in the installed plugin (`~/.claude/plugins/cache/mobile-skill/mobile-skill/<version>/scripts/`) or your clone of this repo:
 ```
 python3 <plugin>/scripts/autopilot.py --workspace docs/sdlc/<slug> --dry-run
-python3 <plugin>/scripts/autopilot.py --workspace docs/sdlc/<slug> --budget-usd 20
+python3 <plugin>/scripts/autopilot.py --workspace docs/sdlc/<slug> --skill android --budget-usd 20
 ```
+`--skill android|multiplatform` picks the platform skill; by default it is detected from `STATUS.md`.
 `--model` and `--effort` (low to max) set each session's model and effort; by default they are Claude Code's.
 
 | It stops when | Then you |

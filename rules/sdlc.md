@@ -4,13 +4,13 @@ paths:
 ---
 # SDLC Documents
 
-Applies to the deliverables of the mobile-android-sdlc (`/mobile-skill:mobile-android-sdlc`) and mobile-multiplatform-sdlc (`/mobile-skill:mobile-multiplatform-sdlc`) workflows under `docs/sdlc/<initiative-slug>/`.
+Applies to the deliverables of the android (`/mobile-skill:android`) and multiplatform (`/mobile-skill:multiplatform`) workflows under `docs/sdlc/<initiative-slug>/`.
 
 - **Start from `STATUS.md`.** Check the current phase, and confirm the previous gate is approved before writing a later phase's deliverable.
 - **Follow the template** of the workflow that owns the workspace, keeping its section order and tables. `STATUS.md` names the skill:
-  - mobile-multiplatform-sdlc (an Android + iOS app): that skill's `templates/`;
-  - otherwise: the mobile-android-sdlc skill's `templates/`.
-- **Platforms.** In a mobile-multiplatform-sdlc workspace, requirements, designs and tests apply to Android and iOS unless tagged `[Android]` or `[iOS]`, and every gate is checked on both.
+  - multiplatform (an Android + iOS app; older files say mobile-multiplatform-sdlc): that skill's `templates/`;
+  - otherwise: the android skill's `templates/`.
+- **Platforms.** In a multiplatform workspace, requirements, designs and tests apply to Android and iOS unless tagged `[Android]` or `[iOS]`, and every gate is checked on both.
 - **IDs everywhere:**
   - `FR-nnn`;
   - `NFR-<ATTR>-nn`, with the attributes the owning skill lists;
