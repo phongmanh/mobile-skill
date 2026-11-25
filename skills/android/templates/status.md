@@ -1,6 +1,6 @@
 # STATUS: <Initiative name>
 
-> The control file for the Android SDLC workflow. Claude reads it first to resume work.
+> The control file for the Android SDLC workflow (`android` skill). Claude reads it first to resume work.
 >
 > Keep it current. It's the single place for gate decisions, risks and open items.
 

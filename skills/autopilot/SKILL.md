@@ -13,7 +13,7 @@ Arguments: `$ARGUMENTS`
 ## Steps
 1. **Pick the platform.** The first argument, if it is `android` or `multiplatform`, is the skill every session runs; it goes to the driver as `--skill <platform>`. The old names `mobile-android-sdlc` and `mobile-multiplatform-sdlc` mean the same.
    - **Not given:** the driver detects it from STATUS.md (multiplatform when it has iOS fields). The dry run in step 5 says which one; ask the user to confirm it before step 6.
-   - **Given, but STATUS.md looks like the other one** (e.g. `android` on a workspace with an `iOS deployment target` or `Platforms` row): say so and ask before running.
+   - **Given, but STATUS.md looks like the other one** (e.g. `android` on a workspace with an `iOS deployment target` or `Platforms` row): the dry run prints a `⚠ --skill …, but the workspace looks like …` line. Show it to the user and ask before running.
 2. **Pick the workspace.** It's `docs/sdlc/<slug>/` in the project root. Use the slug from the arguments. With no slug and more than one workspace, ask which one. With none, explain that `/mobile-skill:android` or `/mobile-skill:multiplatform` creates it, and stop.
 3. **Check it's ready.** Read the top of its `STATUS.md`. Scope (step 3 of the platform skill) must be done, and STATUS.md must have a `## Phase <n> plan` with real rows. If not, do those first, with the user, in that skill.
 4. **Phase 4 only:** **Code review mode** must be *Review after writing*. *Approve before writing* needs the owner for every PR, so autopilot refuses it. Offer to switch it, or continue interactively.

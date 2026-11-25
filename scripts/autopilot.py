@@ -32,7 +32,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "hooks"))
 from sdlc_status import (  # noqa: E402
-    OLD_SKILL_NAMES, detect_skill, field, handoff_field, newest_plan, next_plan_row, phase_number, plan_rows,
+    OLD_SKILL_NAMES, detect_skill_with_reason, field, handoff_field, newest_plan, next_plan_row, phase_number, plan_rows,
     skill_name, workspaces,
 )
 
@@ -226,9 +226,13 @@ def autopilot(args):
     status_file = workspace / "STATUS.md"
     log_file = project / ".claude/autopilot" / f"{workspace.name}.jsonl"
     text = status_file.read_text(encoding="utf-8")
-    skill = skill_name(args.skill) if args.skill else detect_skill(text)
-    source = "from --skill" if args.skill else "detected from STATUS.md"
+    detected, why = detect_skill_with_reason(text)
+    skill = skill_name(args.skill) if args.skill else detected
+    source = "from --skill" if args.skill else f"detected: {why}"
     check_ready(text)
+    if skill != detected:
+        print(paint(f"⚠ --skill {skill}, but the workspace looks like {detected} ({why}). "
+                    f"Every session will run mobile-skill:{skill}.", "amber"), flush=True)
 
     spent, sessions, dashboard = 0.0, 0, None
     try:

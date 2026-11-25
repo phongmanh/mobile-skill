@@ -9,7 +9,7 @@ from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SCRIPTS.parent / "hooks"))
-from sdlc_status import handoff_field, next_plan_row  # noqa: E402
+from sdlc_status import detect_skill, handoff_field, next_plan_row  # noqa: E402
 
 PLAN_ROWS = """| 1 | Draft the brief | FR-001 | — | Done 2026-11-01 |
 | 2 | Draft the FRs | FR-002 | — | Not started |
@@ -173,7 +173,8 @@ class AutopilotTest(unittest.TestCase):
         self.assertIn("--disallowedTools", done.stdout)
         self.assertIn("'Bash(git push*)'", done.stdout)
         self.assertIn("mobile-skill:android ", done.stdout)
-        self.assertIn("skill: android (detected from STATUS.md)", done.stdout)
+        self.assertIn("skill: android (detected: STATUS.md has no iOS fields)", done.stdout)
+        self.assertNotIn("⚠", done.stdout)
         self.assertFalse((self.workspace / "progress.html").exists())
 
     def test_detects_the_multiplatform_skill(self):
@@ -190,6 +191,7 @@ class AutopilotTest(unittest.TestCase):
         done = self.run_autopilot("--dry-run", "--skill", "multiplatform")
         self.assertIn("mobile-skill:multiplatform ", done.stdout)
         self.assertIn("skill: multiplatform (from --skill)", done.stdout)
+        self.assertIn("⚠ --skill multiplatform, but the workspace looks like android", done.stdout)
 
     def test_skill_option_accepts_the_old_names(self):
         self.write_status(status())
@@ -203,6 +205,18 @@ class AutopilotTest(unittest.TestCase):
 
 
 class StatusParserTest(unittest.TestCase):
+    def test_detect_skill_uses_the_stamp_in_the_intro_only(self):
+        android = status().replace("# STATUS: Demo\n", "# STATUS: Demo\n\n> Control file (`android` skill).\n", 1)
+        self.assertEqual(detect_skill(android), "android")
+        mention = status() + "\n## Decisions\n- Considered the `multiplatform` skill; rejected.\n"
+        self.assertEqual(detect_skill(mention), "android")
+        stamped_but_ios = android.replace("| Current phase |", "| Platforms | Android, iOS |\n| Current phase |")
+        self.assertEqual(detect_skill(stamped_but_ios), "android")  # the stamp wins over header fields
+        old = status().replace("# STATUS: Demo\n", "# STATUS: Demo\n\n> (`mobile-multiplatform-sdlc` skill)\n", 1)
+        self.assertEqual(detect_skill(old), "multiplatform")
+        ios = status().replace("| Current phase |", "| iOS deployment target | iOS 17 |\n| Current phase |")
+        self.assertEqual(detect_skill(ios), "multiplatform")
+
     def test_next_plan_row(self):
         row = next_plan_row(status())
         self.assertEqual((row["number"], row["work"], row["needs"], row["status"]),
