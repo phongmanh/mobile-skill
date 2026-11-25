@@ -14,7 +14,7 @@ This is the canonical Kotlin for each concern. When new code follows these shape
 - **Named arguments** for booleans and for parameters of the same type: `Note(id = id, title = title, …)`.
 - **No magic values:** `private const val` for constants; resources for anything the user sees.
 - **Visibility:** `internal` by default in modules, `private` within files.
-- **Comments** explain *why*, never *what*. KDoc only on public APIs that aren't obvious.
+- **Comments** explain *why*, never *what*. KDoc only on public APIs that aren't obvious, plus one exception: when STATUS.md has **Design diagrams** = On, the feature's entry classes (ViewModel, repository interface, each UseCase) carry a one-line KDoc that links to the design's diagrams, e.g. `/** Loads and refreshes the notes list. Design: docs/sdlc/<slug>/design/notes.md §4. */`.
 
 ## Domain (pure Kotlin)
 ```kotlin

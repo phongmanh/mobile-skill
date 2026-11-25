@@ -19,6 +19,7 @@ Feature design → tests (do they describe the right behaviour?) → domain → 
 ## Checklist
 **Scope and traceability**
 - [ ] Matches the approved feature design; nothing unrequested; any deviation has an approved CR
+- [ ] If design diagrams are on: the entry classes link to the design; a changed class or flow also updates its diagram (through a CR once the design is baselined)
 - [ ] FR IDs in the PR; RTM row updated
 
 **Architecture**

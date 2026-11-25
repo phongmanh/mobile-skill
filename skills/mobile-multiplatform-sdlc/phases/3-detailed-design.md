@@ -32,15 +32,20 @@ Fill in the template for each feature:
    - iOS-specific UI adaptations from the look-and-feel ADR.
 
    If a platform matrix row is new or changes, the architecture needs a CR.
-5. **Errors.** A table mapping each `AppError` to a string resource and a UI behaviour: retry, re-login, or an inline field error.
-6. **Analytics.** Events and parameters from the tracking plan, with no PII, sent through the common tracker.
-7. **Accessibility and i18n.**
+5. **Diagrams** (if STATUS.md has **Design diagrams** = On). Draw the feature in Mermaid, following the template's §5 rules:
+   - one class diagram of the classes in §1–§4 and how they depend on each other, grouped by layer;
+   - one sequence diagram per primary flow (at most 3), with its failure path in an `alt` block.
+
+   The diagrams add no facts: draw them from the signatures, and fix the signatures first if a diagram shows a gap. Phase 4 KDocs link to this section.
+6. **Errors.** A table mapping each `AppError` to a string resource and a UI behaviour: retry, re-login, or an inline field error.
+7. **Analytics.** Events and parameters from the tracking plan, with no PII, sent through the common tracker.
+8. **Accessibility and i18n.**
    - Content descriptions, headings, focus order, custom actions.
    - New strings and plurals in `composeResources`.
    - Locale-aware formatting; RTL concerns.
-8. **Test cases.** Integration (`IT-`) and Compose UI (`UI-`) cases, each traced to an FR and tagged with the platforms it runs on. Unit tests are written with the code in Phase 4.
-9. **PR slice plan.** Split the work into small, reviewable PRs that follow the [build order](4-implementation.md#feature-build-order). Each PR has a one-line goal and stays at or below ~400 changed lines. Platform implementations get their own PRs.
-10. **Review.** Walk through each design with the tech lead and another developer; an iOS developer reviews the platform notes. QA reviews the test cases; the designer reviews the UI states on both platforms.
+9. **Test cases.** Integration (`IT-`) and Compose UI (`UI-`) cases, each traced to an FR and tagged with the platforms it runs on. Unit tests are written with the code in Phase 4.
+10. **PR slice plan.** Split the work into small, reviewable PRs that follow the [build order](4-implementation.md#feature-build-order). Each PR has a one-line goal and stays at or below ~400 changed lines. Platform implementations get their own PRs.
+11. **Review.** Walk through each design with the tech lead and another developer; an iOS developer reviews the platform notes. Reviewers check the diagrams against the signatures. QA reviews the test cases; the designer reviews the UI states on both platforms.
 
 ## Exit checklist (G3)
 - [ ] Every in-scope FR is covered by a feature design
@@ -48,6 +53,7 @@ Fill in the template for each feature:
 - [ ] UseCase, repository and DAO signatures written in Kotlin
 - [ ] Platform notes complete; platform interfaces and `expect` signatures written; matrix changes have a CR
 - [ ] Endpoints and Room schema frozen; migrations designed; mock server or fakes available
+- [ ] If design diagrams are on: the class and sequence diagrams match the signatures, including failure paths
 - [ ] Error-to-message table complete; new strings listed
 - [ ] `IT-` and `UI-` test cases traced to FRs and platforms; RTM updated
 - [ ] PR slice plan agreed; estimates fit the schedule
@@ -57,5 +63,6 @@ Fill in the template for each feature:
 - **Designing only the Success state.** Most bugs live in Loading, Empty, Error, Offline and Pending.
 - **Prose instead of signatures.** "The screen loads the user" hides the error-handling and threading decisions.
 - **Leaving the iOS part for later.** "Platform notes: TBD" means the feature is half designed.
+- **A diagram that disagrees with the signatures,** or shows a class or call they don't have. Reviewers trust the picture, so it must not drift.
 - **A schema change without a migration plan.**
 - **One giant PR per feature,** which nobody can review well.

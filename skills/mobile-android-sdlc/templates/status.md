@@ -16,6 +16,7 @@
 | Product owner / Tech lead | <name, role> / <name, role> |
 | Inputs | e.g. backend contract `inputs/openapi.yaml` v<x>, design `<link>` (or "none") |
 | Code review mode | Approve before writing / Review after writing (each PR) |
+| Design diagrams | On (class + sequence per feature, Mermaid) / Off |
 | Current phase | 1 Requirements |
 | Tailoring | Full (app) / Light (feature) |
 | Last updated | YYYY-MM-DD |
@@ -63,7 +64,7 @@ A TBD that blocks a Must requirement blocks the gate.
 |---|---|---|---|---|---|
 
 ## Phase 1 plan
-One row per unit of work, each sized for one session: in Phase 3, half a feature design per row (§1–§4, then §5–§9 and the RTM); one row only for a design that will stay under about 24 KB. Start a new `## Phase <n> plan` table when a phase starts; the SessionStart hook reads the newest one and shows its first row that isn't Done. Status is one of: Not started / In progress / Done / Blocked: <reason>. Autopilot stops at a Blocked row.
+One row per unit of work, each sized for one session: in Phase 3, half a feature design per row (§1–§4, then §5–§10 and the RTM); one row only for a design that will stay under about 24 KB. Start a new `## Phase <n> plan` table when a phase starts; the SessionStart hook reads the newest one and shows its first row that isn't Done. Status is one of: Not started / In progress / Done / Blocked: <reason>. Autopilot stops at a Blocked row.
 
 | # | Work | Covers | Needs from the owner | Status |
 |---|---|---|---|---|
